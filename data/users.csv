@@ -1,3 +1,19 @@
+# USERS DATA
+# Purpose: Master employee data containing personal information, job details, and current status
+# Central repository for all employee records and their organizational information
+#
+# Column Definitions:
+# - UserID: Unique identifier for each user (u001, u002, etc.)
+# - Name: Full name of the employee
+# - Department: Department the employee belongs to (Finance, HR, IT, Sales)
+# - JobTitle: Current job title/position of the employee
+# - Status: Current employment status (Active, Terminated, Removed)
+# - Email: Primary email address for the employee
+# - Manager: UserID of the employee's direct manager
+# - HireDate: Date when employee was hired (YYYY-MM-DD format)
+# - TerminationDate: Date when employment ended (YYYY-MM-DD format, empty if still active)
+# - Environment: System environment assignment (HRProd, HRTest)
+#
 UserID,Name,Department,JobTitle,Status,Email,Manager,HireDate,TerminationDate,Environment
 u001,Alice Johnson,Finance,Finance Admin,Active,alice@company.com,grace,2020-01-15,,HRProd
 u002,Bob Smith,HR,HR Specialist,Active,bob@company.com,heidi,2019-03-10,,HRProd

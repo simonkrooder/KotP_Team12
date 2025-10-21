@@ -1,3 +1,18 @@
+# AUTHORISATIONS DATA
+# Purpose: Tracks individual user access permissions and authorizations to various systems
+# This file maintains the audit trail of who has access to what systems and when
+#
+# Column Definitions:
+# - AuthorisationID: Unique identifier for each authorization record (A001, A002, etc.)
+# - UserID: Reference to user in users.csv (u001, u002, etc.)
+# - RoleID: Reference to role in roles.csv that granted this authorization (R001, R002, etc.)
+# - System: Name of the system/application being accessed (FinanceApp, HRPortal, DevOps, SalesApp)
+# - AccessLevel: Level of access granted (Admin, User, Viewer)
+# - GrantedBy: User ID of the person who granted this authorization
+# - GrantedOn: Date when the authorization was granted (YYYY-MM-DD format)
+# - ExpiresOn: Date when authorization expires (YYYY-MM-DD format, empty if no expiration)
+# - Status: Current status of the authorization (Active, Revoked)
+#
 AuthorisationID,UserID,RoleID,System,AccessLevel,GrantedBy,GrantedOn,ExpiresOn,Status
 A001,u001,R001,FinanceApp,Admin,grace,2020-01-15,,Active
 A002,u002,R002,HRPortal,User,heidi,2019-03-10,,Active

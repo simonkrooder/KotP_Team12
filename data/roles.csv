@@ -1,3 +1,14 @@
+# ROLES DATA
+# Purpose: Master data for job roles and their associated system access permissions
+# Defines the organizational roles and their default system authorizations
+#
+# Column Definitions:
+# - RoleID: Unique identifier for each role (R001, R002, etc.)
+# - RoleName: Human-readable name of the role (Finance Admin, HR Specialist, etc.)
+# - Department: Department this role belongs to (Finance, HR, IT, Sales)
+# - Description: Brief description of the role's responsibilities and access level
+# - DefaultAuthorisations: Default system access pattern for this role (System:AccessLevel format)
+#
 RoleID,RoleName,Department,Description,DefaultAuthorisations
 R001,Finance Admin,Finance,Full admin rights to FinanceApp,"FinanceApp:Admin"
 R002,HR Specialist,HR,Standard HR portal access,"HRPortal:User"

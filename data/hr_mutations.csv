@@ -1,3 +1,19 @@
+# HR MUTATIONS DATA  
+# Purpose: Audit log of all HR data changes and mutations over time
+# This file provides complete traceability of who changed what, when, and why
+#
+# Column Definitions:
+# - MutationID: Unique sequential identifier for each change record
+# - Timestamp: ISO 8601 timestamp of when the change occurred (YYYY-MM-DDTHH:MM:SSZ)
+# - ChangedBy: User ID of the person who made the change
+# - ChangedFor: User ID of the person whose data was changed
+# - ChangeType: Type of change operation (Create, Update, Terminate)
+# - FieldChanged: Specific field that was modified (Salary, JobTitle, Status, Department, etc.)
+# - OldValue: Previous value before the change (N/A for new records)
+# - NewValue: New value after the change
+# - Environment: System environment where change occurred (HRProd, HRTest)
+# - Metadata: Additional context about the change in JSON-like format
+#
 MutationID,Timestamp,ChangedBy,ChangedFor,ChangeType,FieldChanged,OldValue,NewValue,Environment,Metadata
 1,2025-10-20T09:15:00Z,u001,u002,Update,Salary,60000,65000,HRProd,"Reason: Annual raise"
 2,2025-10-20T10:00:00Z,u003,u004,Update,JobTitle,DevOps Engineer,DevOps Lead,HRProd,"Promotion"

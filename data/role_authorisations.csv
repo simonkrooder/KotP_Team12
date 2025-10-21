@@ -1,3 +1,12 @@
+# ROLE AUTHORISATIONS DATA
+# Purpose: Mapping table that defines which systems each role can access and at what level
+# This normalized table breaks down the default authorizations from roles.csv
+#
+# Column Definitions:
+# - RoleID: Reference to role in roles.csv (R001, R002, etc.)
+# - System: Name of the system/application (FinanceApp, HRPortal, DevOps, SalesApp)
+# - AccessLevel: Level of access for this role-system combination (Admin, User, Viewer)
+#
 RoleID,System,AccessLevel
 R001,FinanceApp,Admin
 R002,HRPortal,User
