@@ -1,0 +1,11 @@
+MutationID,Timestamp,ChangedBy,ChangedFor,ChangeType,FieldChanged,OldValue,NewValue,Environment,Metadata
+1,2025-10-20T09:15:00Z,u001,u002,Update,Salary,60000,65000,HRProd,"Reason: Annual raise"
+2,2025-10-20T10:00:00Z,u003,u004,Update,JobTitle,DevOps Engineer,DevOps Lead,HRProd,"Promotion"
+3,2025-10-20T11:30:00Z,u005,u006,Create,User,N/A,HR Specialist,HRTest,"Onboarding"
+4,2025-10-20T12:00:00Z,u007,u008,Terminate,Status,Active,Terminated,HRProd,"Contract ended"
+5,2025-10-20T13:00:00Z,u009,u010,Update,Department,Sales,Finance,HRProd,"Department transfer"
+6,2025-10-20T14:00:00Z,u011,u012,Update,Manager,heidi,ivan,HRTest,"Manager reassignment"
+7,2025-10-20T15:00:00Z,u013,u014,Update,Email,jane@company.com,jane.smith@company.com,HRProd,"Email update"
+8,2025-10-20T16:00:00Z,u015,u016,Update,Status,Active,Removed,HRProd,"Policy violation"
+9,2025-10-20T17:00:00Z,u017,u018,Update,Salary,70000,72000,HRTest,"Annual raise"
+10,2025-10-20T18:00:00Z,u019,u020,Update,JobTitle,Finance Analyst,Finance Director,HRProd,"Promotion"

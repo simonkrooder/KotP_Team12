@@ -1,0 +1,12 @@
+RoleID,RoleName,Department,Description,DefaultAuthorisations
+R001,Finance Admin,Finance,Full admin rights to FinanceApp,"FinanceApp:Admin"
+R002,HR Specialist,HR,Standard HR portal access,"HRPortal:User"
+R003,Finance Analyst,Finance,Standard finance access,"FinanceApp:User"
+R004,DevOps Engineer,IT,DevOps system user,"DevOps:User"
+R005,HR Manager,HR,HR portal admin,"HRPortal:Admin"
+R006,Sales Representative,Sales,Sales system user,"SalesApp:User"
+R007,Finance Director,Finance,Finance system admin,"FinanceApp:Admin"
+R008,DevOps Lead,IT,DevOps admin,"DevOps:Admin"
+R009,Sales Manager,Sales,Sales system admin,"SalesApp:Admin"
+R010,HR Director,HR,HR portal admin,"HRPortal:Admin"
+R011,Finance Auditor,Finance,Read-only finance access,"FinanceApp:Viewer"

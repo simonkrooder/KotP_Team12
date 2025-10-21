@@ -1,0 +1,12 @@
+RoleID,System,AccessLevel
+R001,FinanceApp,Admin
+R002,HRPortal,User
+R003,FinanceApp,User
+R004,DevOps,User
+R005,HRPortal,Admin
+R006,SalesApp,User
+R007,FinanceApp,Admin
+R008,DevOps,Admin
+R009,SalesApp,Admin
+R010,HRPortal,Admin
+R011,FinanceApp,Viewer
