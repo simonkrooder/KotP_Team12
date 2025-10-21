@@ -1,0 +1,10 @@
+{
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    }
+}
