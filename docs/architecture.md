@@ -17,6 +17,97 @@ The scope includes:
 
 The system is composed of specialized agents, each responsible for a distinct part of the change investigation and advisory process. The Investigation Agent orchestrates the flow, calling other agents as needed and updating the audit trail. All tool calls (e.g., data lookups, notifications, validations) are performed via a central MCV (Model-Controller-View) server, which acts as the execution and integration layer for agent actions.
 
+---
+
+## Agent Implementation Details
+
+This section provides explicit details for implementing each agent, their responsibilities, message flows, and integration requirements. Use this as a blueprint for development and testing.
+
+### Agent Classes and Responsibilities
+
+- **Investigation Agent**
+    - **Role:** Orchestrates the investigation workflow for each HR mutation.
+    - **Responsibilities:**
+        - Receives new mutation events (from UI or system trigger).
+        - Maintains investigation context and status.
+        - Delegates tasks to other agents (Rights Check, Request for Information, Advisory) via Agent2Agent protocol.
+        - Updates the audit trail and mutation status after each step.
+        - Handles error and exception flows (e.g., missing data, unresponsive agents).
+    - **Inputs:** New HR mutation data, current investigation context.
+    - **Outputs:** Updated investigation status, audit log entries, agent-to-agent messages.
+
+- **Rights Check Agent**
+    - **Role:** Validates whether the changer had the correct rights for the mutation.
+    - **Responsibilities:**
+        - Receives context from Investigation Agent.
+        - Calls the MCV server to check authorizations (using user, role, and application data).
+        - Returns result (authorized/unauthorized) and supporting evidence.
+        - Logs all actions and results.
+    - **Inputs:** User ID, mutation details, context.
+    - **Outputs:** Authorization result, audit log entry.
+
+- **Request for Information Agent**
+    - **Role:** Gathers additional information from the changer and/or their manager.
+    - **Responsibilities:**
+        - Receives context and clarification requests from Investigation Agent.
+        - Calls the MCV server to send (mocked) notifications or requests for clarification.
+        - Validates claims (e.g., sick leave, vacation) via MCV server data lookups.
+        - Handles and logs user/manager responses (via UI or mock interface).
+        - Returns findings to Investigation Agent.
+    - **Inputs:** Mutation context, clarification questions.
+    - **Outputs:** User/manager responses, validation results, audit log entries.
+
+- **Advisory Agent**
+    - **Role:** Synthesizes all findings and generates a final advisory report.
+    - **Responsibilities:**
+        - Receives full investigation context and findings from Investigation Agent.
+        - Calls the MCV server to generate/send a report (mocked or real).
+        - Recommends an outcome (accept, reject, escalate/manual intervention).
+        - Logs the advisory action and outcome.
+    - **Inputs:** Investigation context, findings from other agents.
+    - **Outputs:** Advisory report, recommendation, audit log entry.
+
+### Agent2Agent Protocol Implementation
+
+- All agent communication uses structured messages with:
+    - Context (current investigation state, mutation data, prior findings)
+    - Action/request type
+    - Correlation ID (for traceability)
+    - Timestamp
+- Agents must log every received message, action taken, and response sent.
+- All agent-to-agent messages are auditable and stored for traceability.
+
+### MCV Server Integration
+
+- Agents never access data or external systems directly; all tool calls go through the MCV server.
+- The MCV server must expose endpoints for:
+    - Authorization checks
+    - Data lookups (users, roles, sick leave, vacation, etc.)
+    - Sending/receiving (mocked) notifications
+    - Report generation
+- Every tool call and result must be logged by the MCV server for audit.
+
+### Agent Lifecycle and Message Flow
+
+1. **Trigger:** New HR mutation is created (via UI or system event).
+2. **Investigation Agent:** Starts investigation, logs event, and requests rights check.
+3. **Rights Check Agent:** Validates authorization, returns result.
+4. **Investigation Agent:** Updates status. If unauthorized or unclear, requests clarification.
+5. **Request for Information Agent:** Contacts changer/manager, validates claims, returns responses.
+6. **Investigation Agent:** Updates context and status, then requests advisory.
+7. **Advisory Agent:** Generates report and recommendation.
+8. **Investigation Agent:** Finalizes status, logs all actions, and updates audit trail.
+
+### Implementation Notes
+
+- Each agent should be implemented as a class/module with a standard interface (e.g., `handle_request(context)`).
+- Use environment variables for all Azure and deployment configuration (see `.env`).
+- All status changes and agent actions must be logged in `audit_trail.csv` and/or the relevant mutation record.
+- The system must be testable end-to-end with sample data and mock responses.
+
+---
+
+The following section continues with the original overview and high-level architecture.
 ### Agents and Responsibilities
 
 - **Investigation Agent**: Orchestrates the investigation, maintains context, updates audit status, and coordinates other agents via Agent2Agent protocol.
@@ -116,9 +207,6 @@ Audit Trail & Insights Page
 ```
 
 All agent-to-agent communication is via the Agent2Agent protocol, and all actions are logged for auditability.
-
----
-
 
 ---
 

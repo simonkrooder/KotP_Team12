@@ -1,18 +1,24 @@
-# Agent Setup To-Do List
 
-This document outlines the actionable steps required to set up an agent in the style of the Azure-AI-Foundry `main.py` example, including required frameworks, packages, and project structure. This assumes you have already created `/src/.env` with Azure Foundry subscription data.
+# Agent Setup Checklist
+
+This checklist provides step-by-step instructions for implementing the multi-agent system as described in `architecture.md` and `application.md`.  
+**Use this as your development and onboarding guide.**
 
 ---
 
 ## 1. Install Required Packages
+
 - [ ] Install Azure AI Foundry SDKs and dependencies:
   - `azure-ai-agents`
   - `azure-ai-projects`
   - `azure-identity`
   - `python-dotenv`
-  - Any additional tools (e.g., `streamlit`, `pandas`, etc. as needed)
+  - `pandas`
+  - `streamlit` (for UI)
+  - Any other required tools
 
 ## 2. Project Structure & Environment
+
 - [ ] Ensure `/src/.env` contains all required Azure credentials and deployment info:
   - `AGENT_MODEL_DEPLOYMENT_NAME`
   - `PROJECT_ENDPOINT`
@@ -21,38 +27,67 @@ This document outlines the actionable steps required to set up an agent in the s
   - Any other required environment variables
 - [ ] Add `.env` to `.gitignore` if not already present
 
-## 3. Agent Code Setup
-- [ ] Create a new agent entrypoint (e.g., `/src/agent_main.py`)
-- [ ] In the entrypoint, implement:
-  - Load environment variables with `dotenv`
-  - Set up logging
-  - Initialize Azure AI Project and Agent clients
-  - Define agent instructions (can be loaded from a file or string)
-  - Register tools (function tools, code interpreter, file search, etc.)
-  - Create agent and thread objects
-  - Implement message posting and run polling logic (handle tool calls, submit tool outputs, handle agent responses)
-  - Implement cleanup logic
+## 3. Data Foundation
 
-## 4. Tooling & Utilities
-- [ ] Implement or adapt any required tool classes (e.g., for data access, file search, code execution)
-- [ ] Add utility modules for colorized terminal output, file downloads, etc. (optional, for UX)
+- [ ] Verify and standardize all CSV files:
+  - `authorisations.csv`, `hr_mutations.csv`, `role_authorisations.csv`, `roles.csv`, `users.csv`, `sickLeave.csv`, `vacation.csv`, `audit_trail.csv`
+- [ ] Add or update columns as needed (e.g., `Reason`, `ManagerID`)
+- [ ] Implement a data access layer for reading/writing CSVs
 
-## 5. Testing & Iteration
+## 4. Agent Code Implementation
+
+- [ ] Create agent classes/modules:
+  - Investigation Agent
+  - Rights Check Agent
+  - Request for Information Agent
+  - Advisory Agent
+- [ ] Implement Agent2Agent protocol for structured messaging and context passing
+- [ ] Implement standard agent interface (e.g., `handle_request(context)`)
+
+## 5. MCV Server Implementation
+
+- [ ] Implement the MCV server as the only integration point for tool calls:
+  - Authorization checks
+  - Data lookups
+  - Sending/receiving (mocked) notifications
+  - Report generation
+- [ ] Ensure all tool calls and results are logged for audit
+
+## 6. Orchestration & Entry Point
+
+- [ ] Create `/src/agent_main.py` as the main entrypoint:
+  - Load environment variables
+  - Initialize agent clients and MCV server
+  - Register agents and their toolsets
+  - Handle message routing, tool call submission, and response polling
+  - Log all actions and status changes
+
+## 7. Frontend/UI
+
+- [ ] Implement UI pages (e.g., with Streamlit):
+  - HR mutation entry page
+  - HR mutations table
+  - Audit trail page
+  - Mocked user/manager response page
+  - Insights/dashboard page
+  - (Optional) Manual trigger/chat page
+
+## 8. Audit Trail & Logging
+
+- [ ] Log every agent action and status change in `audit_trail.csv`
+- [ ] Ensure all updates to `change_investigation` in `hr_mutations.csv` are logged
+
+## 9. Testing & Validation
+
 - [ ] Test agent initialization and message flow with sample queries
 - [ ] Validate tool call execution and agent reasoning
-- [ ] Iterate on instructions and toolset as needed
+- [ ] Mock all system interactions for end-to-end testing
+- [ ] Validate with edge cases and sample data
 
-## 6. Integration with Frontend
-- [ ] Connect the agent backend to your frontend (e.g., via API, Streamlit, etc.)
-- [ ] Ensure prompt/response flow is working end-to-end
+## 10. Documentation
 
-## 7. Documentation
-- [ ] Document environment variables and setup steps in `/docs/agentsetup.md`
+- [ ] Document environment variables and setup steps in `/docs/application.md`
 - [ ] Add usage instructions and troubleshooting tips
 
 ---
-
-**References:**
-- [Azure-AI-Foundry main.py](https://github.com/Knights-of-the-Prompts/Azure-AI-Foundry/blob/main/src/workshop/main.py)
-- [Azure AI Agents SDK Docs](https://learn.microsoft.com/en-us/python/api/overview/azure/ai-agents-readme)
 

@@ -24,7 +24,72 @@ Automate the detection, investigation, and advisory process for changes in busin
 
 ## Detailed System Flow
 
+
 This section describes the step-by-step flow of the agentic investigation and advisory process:
+
+---
+
+## Practical Multi-Agent Workflow Example
+
+This example demonstrates how the multi-agent system processes a new HR mutation from start to finish, using sample data and showing each agent's actions and message flows.
+
+### Example Scenario
+
+- **User:** Alice (UserID: U123)
+- **Application:** Payroll
+- **Mutation:** Change salary for Bob (UserID: U456)
+- **Reason:** "Correction after sick leave"
+
+#### Step 1: HR Mutation Entry
+- Alice submits a mutation via the UI.
+- Entry is added to `hr_mutations.csv`:
+	- `changer=U123`, `target=U456`, `application=Payroll`, `reason=Correction after sick leave`, `status=Pending`
+- Audit trail logs: "Mutation submitted by Alice (U123) for Bob (U456) in Payroll."
+
+#### Step 2: Investigation Agent Triggered
+- Investigation Agent detects the new entry.
+- Updates status to `Investigation Started`.
+- Logs: "Investigation started for mutation X."
+
+#### Step 3: Rights Check Agent
+- Investigation Agent sends a message (via Agent2Agent protocol) to Rights Check Agent:
+	- Context: mutation details, changer ID, application
+	- Correlation ID: auto-generated
+- Rights Check Agent calls MCV server to check if Alice (U123) is authorized for this change.
+- MCV server queries `authorisations.csv` and `role_authorisations.csv`.
+- Rights Check Agent returns result:
+	- If authorized: Investigation Agent sets status to `Approved`, logs action, and process ends.
+	- If not authorized: Investigation Agent sets status to `Clarification Requested`, logs action.
+
+#### Step 4: Request for Information Agent (User Clarification)
+- Investigation Agent sends a clarification request to Request for Information Agent.
+- Request for Information Agent calls MCV server to send a (mocked) notification to Alice.
+- Status set to `Awaiting User Response`.
+- Alice responds via UI (mocked response captured by MCV server).
+- Request for Information Agent validates claim (e.g., checks `sickLeave.csv` for Bob).
+- If claim invalid: status set to `Rejected - Invalid User Claim`, logs action, process ends.
+- If claim valid: status set to `Manager Verification Requested`, logs action.
+
+#### Step 5: Request for Information Agent (Manager Verification)
+- Request for Information Agent sends a verification request to Bob's manager (e.g., ManagerID: M789).
+- MCV server sends (mocked) notification to manager.
+- Status set to `Awaiting Manager Response`.
+- Manager responds via UI (mocked response captured).
+- Status set to `Manager Responded`, logs action.
+
+#### Step 6: Advisory Agent
+- Investigation Agent sends full context and findings to Advisory Agent.
+- Advisory Agent calls MCV server to generate a report and recommendation.
+- Report includes summary, findings, and recommended outcome (e.g., `Accepted`).
+- Status set to `Advisory Report Generated`, logs action.
+
+#### Step 7: Finalization
+- Investigation Agent updates `hr_mutations.csv` and `audit_trail.csv` with final status and all actions.
+- UI displays the full audit trail and advisory report for review.
+
+---
+
+**This example can be used as a test case for development and demo purposes.**
 
 1. **HR Mutation Entry:**
 	- A user submits a new HR mutation via the entry page.
