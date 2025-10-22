@@ -130,6 +130,43 @@ The following status codes are used to track the investigation state for each ch
 
 ## Actionable TODOs
 
+---
+
+## Front-End/UI Requirements
+
+To support the agentic workflow and ensure the system is auditable, demo-ready, and testable, the application must provide a user interface with the following pages and features:
+
+### 1. HR Mutation Entry Page
+- Allows users to create a new HR mutation (with dropdowns for user, application, and reason fields).
+- Submitting a new entry triggers the Investigation Agent and starts the workflow.
+
+### 2. HR Mutations Table
+- Displays all HR mutations with their current status (`change_investigation` column).
+- Supports filtering and sorting by status, user, date, etc.
+- Allows selection of a mutation to view its audit trail.
+
+### 3. Audit Trail Page
+- For a selected change, shows the full audit trail: all agent actions, status changes, and timestamps.
+- Enables step-by-step tracking of the investigation process for each change.
+
+### 4. Mocked User/Manager Response Page
+- When the system is awaiting a response from a user or manager (e.g., status is `Awaiting User Response` or `Awaiting Manager Response`), the UI presents a form or button for a human to provide a mock response.
+- This simulates email/notification interactions and allows the workflow to proceed without real email integration.
+- All such interactions are logged in the audit trail for traceability.
+
+### 5. Insights/Dashboard Page (Recommended)
+- Shows metrics such as the number of changes in each status, average investigation time, and anomalies.
+- Useful for compliance officers and for demoing system capabilities.
+
+### 6. (Optional) Manual Trigger/Chat Page
+- Allows manual triggering of agents or direct interaction with the system for testing and debugging.
+
+#### Mocking Email/Notification Interactions
+- All email or notification actions by agents are mocked: when an agent requests clarification or validation, the UI displays the request and allows a human to provide a response directly in the interface.
+- No real email integration is required; all communication is handled via the UI and logged for auditability.
+
+This UI design ensures the system is fully testable, auditable, and suitable for demonstration, while supporting all user stories and workflow requirements described above.
+
 ### Data & Foundation
 - [ ] Verify and standardize the structure/content of all CSV files (`authorisations.csv`, `hr_mutations.csv`, `role_authorisations.csv`, `roles.csv`, `users.csv`, `sickLeave.csv`, `vacation.csv`).
 - [ ] Add or update columns as needed (e.g., `Reason`, `ManagerID` in `hr_mutations.csv` and `users.csv`).

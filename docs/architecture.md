@@ -119,6 +119,41 @@ All agent-to-agent communication is via the Agent2Agent protocol, and all action
 
 ---
 
-## Conclusion
+
+---
+
+## Front-End/UI Requirements
+
+To support the agentic workflow, auditability, and demo/testability, the system must provide a user interface with the following features:
+
+### 1. HR Mutation Entry Page
+- Form for creating new HR mutations (dropdowns for user, application, reason, etc.).
+- Triggers the Investigation Agent and starts the workflow.
+
+### 2. HR Mutations Table
+- Table view of all HR mutations with their current status (`change_investigation`).
+- Supports filtering, sorting, and selection for further inspection.
+
+### 3. Audit Trail Page
+- For a selected mutation, displays the full audit trail: agent actions, status changes, timestamps.
+- Enables step-by-step tracking of the investigation process.
+
+### 4. Mocked User/Manager Response Page
+- When the system is awaiting a user or manager response (e.g., `Awaiting User Response`, `Awaiting Manager Response`), the UI presents a form or button for a human to provide a mock response.
+- This simulates email/notification interactions and allows the workflow to proceed without real email integration.
+- All such interactions are logged in the audit trail for traceability.
+
+### 5. Insights/Dashboard Page (Recommended)
+- Shows metrics, status counts, anomalies, and investigation timelines.
+- Useful for compliance, monitoring, and demonstration.
+
+### 6. (Optional) Manual Trigger/Chat Page
+- Allows manual triggering of agents or direct interaction for testing and debugging.
+
+#### Mocking Email/Notification Interactions
+- All agent requests for clarification or validation are surfaced in the UI, allowing a human to provide a response directly.
+- No real email integration is required; all communication is handled via the UI and logged for auditability.
+
+This UI design ensures the system is fully testable, auditable, and suitable for demonstration, while supporting all workflow and compliance requirements.
 
 This architecture enables modular, auditable, and extensible change governance using a multi-agent system. Each agent is responsible for a clear part of the workflow, and the Agent2Agent protocol ensures robust communication and traceability. The design supports rapid development, easy testing/mocking, and future expansion.
