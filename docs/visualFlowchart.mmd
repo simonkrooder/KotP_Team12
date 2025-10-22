@@ -1,0 +1,32 @@
+%% Mermaid flowchart: Multi-Agent Access Control Investigation Flow
+flowchart TD
+    A[User/Changer submits HR Mutation] --> B["HR Mutation Entry Page (UI)"]
+    B --> B1[Set status to Pending/New & Log]
+    B1 --> C[Investigation Agent Triggered]
+    C --> C1[Set status to Investigation Started & Log]
+    C1 --> D{"Rights Check Agent (via MCV server)"}
+    D -- Authorized --> E[Set status to Approved & Log<br>Process Ends]
+    D -- Not Authorized --> F["Request for Information Agent (Clarification Request)"]
+    F --> F1[Set status to Clarification Requested & Log]
+    F1 --> G[Awaiting User Response]
+    G --> H{User Responds?}
+    H -- No --> G
+    H -- Yes --> I["Validate Claim (e.g., sick leave, vacation)"]
+    I -- Invalid Claim --> J[Set status to Rejected - Invalid User Claim & Log<br>Process Ends]
+    I -- Valid Claim --> K["Request for Information Agent (Manager Verification)"]
+    K --> K1[Set status to Manager Verification Requested & Log]
+    K1 --> L[Awaiting Manager Response]
+    L --> M{Manager Responds?}
+    M -- No --> L
+    M -- Yes --> N[Set status to Manager Responded & Log]
+    N --> O[Advisory Agent Generates Report]
+    O --> O1[Set status to Advisory Report Generated & Log]
+    O1 --> P{Advisory Outcome}
+    P -- Accept --> Q[Set status to Accepted & Log<br>Process Ends]
+    P -- Reject/Investigate --> R[Set status to Rejected - Further Investigation & Log<br>Process Ends]
+    P -- Manual Intervention --> S[Set status to Manual Intervention Required & Log<br>Process Ends]
+    E -.-> T[Audit Trail & Insights Page]
+    J -.-> T
+    Q -.-> T
+    R -.-> T
+    S -.-> T

@@ -1,0 +1,15 @@
+# AUDIT TRAIL DATA
+# Purpose: Logs all agent actions and status changes for traceability and compliance.
+# Used to reconstruct the step-by-step investigation and decision process for each HR mutation.
+#
+# Column Definitions:
+# - AuditID: Unique identifier for each audit log entry
+# - MutationID: Reference to the HR mutation being audited
+# - Timestamp: ISO 8601 timestamp of the action (YYYY-MM-DDTHH:MM:SSZ)
+# - OldStatus: Previous status before the change
+# - NewStatus: New status after the change
+# - Agent: Name of the agent or process making the change
+# - Comment: Additional context or reason for the status change
+#
+AuditID,MutationID,Timestamp,OldStatus,NewStatus,Agent,Comment
+1,123,2025-10-22T10:00:00,Pending,Investigation Started,InvestigationAgent,"Triggered by new entry"

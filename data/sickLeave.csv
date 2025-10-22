@@ -1,0 +1,12 @@
+# SICK LEAVE DATA
+# Purpose: Tracks user sick leave periods for validation in agentic investigation workflows.
+# Used by agents to verify user claims during HR mutation investigations.
+#
+# Column Definitions:
+# - UserID: Reference to user in users.csv (u001, u002, etc.)
+# - StartDate: Start date of sick leave (YYYY-MM-DD)
+# - EndDate: End date of sick leave (YYYY-MM-DD)
+# - Status: Approval status of the sick leave (approved, pending, etc.)
+#
+UserID,StartDate,EndDate,Status
+u001,2025-10-20,2025-10-22,approved

@@ -1,6 +1,6 @@
 # ROLES DATA
-# Purpose: Master data for job roles and their associated system access permissions
-# Defines the organizational roles and their default system authorizations
+# Purpose: Master data for job roles and their associated system access permissions.
+# Used for agentic role mapping and default system authorizations in automated workflows.
 #
 # Column Definitions:
 # - RoleID: Unique identifier for each role (R001, R002, etc.)

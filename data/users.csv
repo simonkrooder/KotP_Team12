@@ -1,6 +1,7 @@
 # USERS DATA
-# Purpose: Master employee data containing personal information, job details, and current status
-# Central repository for all employee records and their organizational information
+# Purpose: Master employee data containing personal information, job details, and current status.
+# Central repository for all employee records and their organizational information.
+# Used by agents for workflow validation, including manager linkage for approval processes.
 #
 # Column Definitions:
 # - UserID: Unique identifier for each user (u001, u002, etc.)
@@ -9,13 +10,32 @@
 # - JobTitle: Current job title/position of the employee
 # - Status: Current employment status (Active, Terminated, Removed)
 # - Email: Primary email address for the employee
-# - Manager: UserID of the employee's direct manager
+# - Manager: UserID of the employee's direct manager (used for agentic validation)
 # - HireDate: Date when employee was hired (YYYY-MM-DD format)
 # - TerminationDate: Date when employment ended (YYYY-MM-DD format, empty if still active)
 # - Environment: System environment assignment (HRProd, HRTest)
 #
 UserID,Name,Department,JobTitle,Status,Email,Manager,HireDate,TerminationDate,Environment
 u001,Alice Johnson,Finance,Finance Admin,Active,alice@company.com,grace,2020-01-15,,HRProd
+u002,Bob Smith,HR,HR Specialist,Active,bob@company.com,heidi,2019-03-10,,HRProd
+u003,Carol White,Finance,Finance Analyst,Terminated,carol@company.com,grace,2018-07-22,2025-10-01,HRProd
+u004,Dave Brown,IT,DevOps Engineer,Active,dave@company.com,ivan,2021-05-30,,HRProd
+u005,Erin Black,Finance,Finance Analyst,Removed,erin@company.com,grace,2022-02-14,2025-09-15,HRProd
+u006,Frank Green,HR,HR Specialist,Active,frank@company.com,heidi,2023-04-01,,HRTest
+u007,George King,Finance,Finance Analyst,Active,george@company.com,grace,2024-06-10,,HRProd
+u008,Helen Lee,HR,HR Manager,Terminated,helen@company.com,heidi,2017-11-05,2025-10-20,HRProd
+u009,Ivan Moore,IT,DevOps Engineer,Active,ivan@company.com,ivan,2020-09-18,,HRProd
+u010,Jane Smith,Sales,Sales Representative,Active,jane@company.com,victor,2021-12-01,,HRProd
+u011,Kate Adams,Finance,Finance Director,Active,kate@company.com,grace,2016-08-25,,HRTest
+u012,Leo Clark,IT,DevOps Lead,Active,leo@company.com,ivan,2019-10-10,,HRTest
+u013,Mary Young,HR,HR Specialist,Active,mary@company.com,heidi,2025-01-01,,HRProd
+u014,Nick Hall,Sales,Sales Manager,Active,nick@company.com,victor,2018-03-15,,HRProd
+u015,Olivia Scott,Finance,Finance Analyst,Terminated,olivia@company.com,grace,2017-06-20,2025-09-01,HRProd
+u016,Paul Turner,IT,DevOps Engineer,Active,paul@company.com,ivan,2025-05-05,,HRTest
+u017,Quinn Reed,HR,HR Director,Active,quinn@company.com,heidi,2015-04-12,,HRProd
+u018,Rachel Fox,Sales,Sales Representative,Active,rachel@company.com,victor,2023-08-10,,HRTest
+u019,Steve West,Finance,Finance Auditor,Active,steve@company.com,grace,2022-11-20,,HRProd
+u020,Tina Bell,IT,DevOps Engineer,Removed,tina@company.com,ivan,2016-02-28,2025-10-10,HRProd
 u002,Bob Smith,HR,HR Specialist,Active,bob@company.com,heidi,2019-03-10,,HRProd
 u003,Carol White,Finance,Finance Analyst,Terminated,carol@company.com,grace,2018-07-22,2025-10-01,HRProd
 u004,Dave Brown,IT,DevOps Engineer,Active,dave@company.com,ivan,2021-05-30,,HRProd
