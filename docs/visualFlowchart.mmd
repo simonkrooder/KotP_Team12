@@ -1,8 +1,7 @@
 %% Mermaid flowchart: Multi-Agent Access Control Investigation Flow
 flowchart TD
-    A[User/Changer submits HR Mutation] --> B["HR Mutation Entry Page (UI)"]
-    B --> B1[Set status to Pending/New & Log]
-    B1 --> C[Investigation Agent Triggered]
+    A["HR Mutation Entry Page (UI)"] --> B["Add new change to hr_mutations.csv (mock change)"]
+    B --> C[Investigation Agent Triggered]
     C --> C1[Set status to Investigation Started & Log]
     C1 --> D{"Rights Check Agent (via MCV server)"}
     D -- Authorized --> E[Set status to Approved & Log<br>Process Ends]
