@@ -59,12 +59,12 @@ def load_data():
     data_path = Path(__file__).parent.parent / "data"
     
     try:
-        users_df = pd.read_csv(data_path / "users.csv")
-        roles_df = pd.read_csv(data_path / "roles.csv")
-        authorisations_df = pd.read_csv(data_path / "authorisations.csv")
-        role_authorisations_df = pd.read_csv(data_path / "role_authorisations.csv")
-        hr_mutations_df = pd.read_csv(data_path / "hr_mutations.csv")
-        
+        users_df = pd.read_csv(data_path / "users.csv", comment="#")
+        roles_df = pd.read_csv(data_path / "roles.csv", comment="#")
+        authorisations_df = pd.read_csv(data_path / "authorisations.csv", comment="#")
+        role_authorisations_df = pd.read_csv(data_path / "role_authorisations.csv", comment="#")
+        hr_mutations_df = pd.read_csv(data_path / "hr_mutations.csv", comment="#")
+
         # Convert timestamp columns and make them timezone-naive for comparison
         if 'Timestamp' in hr_mutations_df.columns:
             hr_mutations_df['Timestamp'] = pd.to_datetime(hr_mutations_df['Timestamp']).dt.tz_localize(None)
@@ -72,7 +72,7 @@ def load_data():
             authorisations_df['GrantedOn'] = pd.to_datetime(authorisations_df['GrantedOn']).dt.tz_localize(None)
         if 'ExpiresOn' in authorisations_df.columns:
             authorisations_df['ExpiresOn'] = pd.to_datetime(authorisations_df['ExpiresOn']).dt.tz_localize(None)
-            
+
         return {
             'users': users_df,
             'roles': roles_df,
