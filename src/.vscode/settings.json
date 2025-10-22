@@ -3,7 +3,7 @@
     "editor.insertSpaces": true,
     "files.autoSave": "afterDelay",
     "files.autoSaveDelay": 1000,
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.codeActionsOnSave": {
         "source.organizeImports": "explicit"
     }
