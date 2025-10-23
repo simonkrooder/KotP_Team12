@@ -1,11 +1,19 @@
+
 import os
 import logging
+import sys
+import asyncio
+from pathlib import Path
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import AsyncFunctionTool, MessageRole
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
-from pathlib import Path
-import asyncio
+
+# Ensure project root is in sys.path for 'src' imports when run as __main__
+if __name__ == "__main__":
+    project_root = str(Path(__file__).resolve().parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,10 +80,11 @@ class InvestigationAgent:
         if not self.initialized:
             await self.initialize()
         import json
+        # Always serialize context to a string for the content field
         message = self.project_client.agents.messages.create(
             thread_id=self.thread.id,
             role="user",
-            content=context,
+            content=json.dumps(context),
         )
         run = self.project_client.agents.runs.create(
             thread_id=self.thread.id,
@@ -169,10 +178,42 @@ if __name__ == "__main__":
     import json
     import sys
     import asyncio
-    print("InvestigationAgent CLI. Enter context as JSON or type 'exit' to quit.")
+    print("InvestigationAgent CLI. Choose mode:")
+    print("1. Chat mode (plain text, conversational)")
+    print("2. JSON mode (enter raw JSON context)")
+    mode = None
+    while mode not in ("1", "2"):
+        mode = input("Select mode [1/2]: ").strip()
     agent = InvestigationAgent()
-    async def cli_loop():
+    async def chat_cli_loop():
         await agent.initialize()
+        print("\nChat mode: Type your message and press Enter. Type 'exit' to quit.")
+        history = []
+        while True:
+            try:
+                user_input = input("You: ")
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting.")
+                break
+            if user_input.strip().lower() == "exit":
+                break
+            if not user_input.strip():
+                continue
+            # Build context with message and history
+            context = {
+                "message": user_input,
+                "history": history[-10:]  # last 10 turns for context
+            }
+            result = await agent._handle_request_async(context)
+            agent_reply = result.get("response") or result.get("error") or "(no response)"
+            print(f"Agent: {agent_reply}\n")
+            # Add to history
+            history.append({"role": "user", "content": user_input})
+            history.append({"role": "agent", "content": agent_reply})
+
+    async def json_cli_loop():
+        await agent.initialize()
+        print("\nJSON mode: Enter context as JSON. Type 'exit' to quit.")
         while True:
             try:
                 user_input = input("\nEnter context JSON (or 'exit'): ")
@@ -191,4 +232,8 @@ if __name__ == "__main__":
             result = await agent._handle_request_async(context)
             print("\nAgent response:")
             print(json.dumps(result, indent=2, ensure_ascii=False))
-    asyncio.run(cli_loop())
+
+    if mode == "1":
+        asyncio.run(chat_cli_loop())
+    else:
+        asyncio.run(json_cli_loop())

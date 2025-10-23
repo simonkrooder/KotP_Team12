@@ -1,15 +1,21 @@
 
+
+# --- AdvisoryAgent tool functions and helpers ---
 import asyncio
 import logging
 import os
+import sys
+from pathlib import Path
 from azure.ai.projects import AIProjectClient
-from azure.ai.agents.models import (
-    AsyncFunctionTool,
-    MessageRole,
-)
+from azure.ai.agents.models import AsyncFunctionTool, MessageRole
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
-from pathlib import Path
+
+# Ensure project root is in sys.path for 'src' imports when run as __main__
+if __name__ == "__main__":
+    project_root = str(Path(__file__).resolve().parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,13 +33,7 @@ if not (API_DEPLOYMENT_NAME and PROJECT_ENDPOINT and AZURE_SUBSCRIPTION_ID and A
     logger.error("Missing required environment variables. Please check your .env file.")
     exit(1)
 
-project_client = AIProjectClient(
-    endpoint=PROJECT_ENDPOINT,
-    credential=DefaultAzureCredential(),
-)
-
 def generate_report(mutation_id: str, context: dict) -> dict:
-    # For demo, generate a simple summary report
     import datetime
     report_id = f"RPT-{mutation_id}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
     summary = f"Advisory report for mutation {mutation_id}"
@@ -57,131 +57,201 @@ def get_toolset():
         return await asyncio.to_thread(generate_report, mutation_id, context)
     async def async_lookup_advisory(file: str, query: dict) -> dict:
         return await asyncio.to_thread(lookup_advisory, file, query)
-    return AsyncFunctionTool(functions={
-        async_generate_report,
-        async_lookup_advisory,
-    })
+    return AsyncFunctionTool(functions=[async_generate_report, async_lookup_advisory])
 
 def load_instructions():
     return "You are an HR advisory agent. Use the available tools to provide recommendations."
 
-async def initialize():
-    instructions = load_instructions()
-    toolset = get_toolset()
-    logger.info("Creating agent...")
-    agent = project_client.agents.create_agent(
-        model=API_DEPLOYMENT_NAME,
-        name="AdvisoryAgent",
-        instructions=instructions,
-        toolset=toolset,
-        temperature=TEMPERATURE,
-        headers={"x-ms-enable-preview": "true"},
-    )
-    logger.info(f"Created agent, ID: {agent.id}")
-    thread = project_client.agents.threads.create()
-    logger.info(f"Created thread, ID: {thread.id}")
-    return agent, thread
-
-async def post_message(agent, thread_id, content, thread):
-    logger.info(f"Posting message to thread {thread_id}...")
-    message = project_client.agents.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=content,
-    )
-    logger.info(f"Message created: {message.id}")
-    run = project_client.agents.runs.create(
-        thread_id=thread.id,
-        agent_id=agent.id,
-    )
-    logger.info(f"Run created: {run.id}")
-    import json
-    max_iterations = 60
-    iteration = 0
-    from src.agent_protocol import create_message, log_agent_message
-    while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
-        await asyncio.sleep(2)
-        iteration += 1
-        run = project_client.agents.runs.get(thread_id=thread.id, run_id=run.id)
-        logger.info(f"Run status: {run.status} (iteration {iteration})")
-        if run.status == "requires_action" and run.required_action:
-            logger.info("Run requires action - handling tool calls...")
-            tool_outputs = []
-            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
-                logger.info(f"Executing function: {tool_call.function.name}")
-                args = json.loads(tool_call.function.arguments)
-                retries = 0
-                max_retries = 3
-                result = None
-                while retries < max_retries:
-                    try:
-                        if tool_call.function.name == "async_generate_report":
-                            result = await get_toolset().tools[0].coroutine(**args)
-                        elif tool_call.function.name == "async_lookup_advisory":
-                            result = await get_toolset().tools[1].coroutine(**args)
-                        else:
-                            result = f"Tool {tool_call.function.name} not implemented."
-                        # Log successful tool call
-                        msg = create_message(
-                            sender="AdvisoryAgent",
-                            receiver="ToolCall",
-                            action=tool_call.function.name,
-                            context=args,
-                            status="success",
-                            error=None
-                        )
-                        log_agent_message(msg, comment=f"Tool call success")
-                        break
-                    except Exception as e:
-                        retries += 1
-                        msg = create_message(
-                            sender="AdvisoryAgent",
-                            receiver="ToolCall",
-                            action=tool_call.function.name,
-                            context=args,
-                            status="error",
-                            error={"message": str(e), "retry": retries}
-                        )
-                        log_agent_message(msg, comment=f"Tool call error, retry {retries}")
-                        logger.error(f"Error in tool call {tool_call.function.name}: {e} (retry {retries})")
-                        if retries >= max_retries:
-                            result = {"error": str(e), "retries": retries}
-                tool_outputs.append({
-                    "tool_call_id": tool_call.id,
-                    "output": result
-                })
-            if tool_outputs:
-                run = project_client.agents.runs.submit_tool_outputs(
-                    thread_id=thread.id,
-                    run_id=run.id,
-                    tool_outputs=tool_outputs
-                )
-                logger.info("Tool outputs submitted.")
-    if run.status == "completed":
-        response = project_client.agents.messages.get_last_message_by_role(
-            thread_id=thread_id,
-            role=MessageRole.AGENT,
+class AdvisoryAgent:
+    def __init__(self):
+        self.project_client = AIProjectClient(
+            endpoint=PROJECT_ENDPOINT,
+            credential=DefaultAzureCredential(),
         )
-        if response:
-            print("\nAgent response:")
-            print("\n".join(t.text.value for t in response.text_messages))
-        else:
-            print("No response message found.")
-    elif run.status == "failed":
-        print(f"Run failed: {run.last_error}")
+        self.agent = None
+        self.thread = None
+        self.initialized = False
 
-async def main():
-    with project_client:
-        agent, thread = await initialize()
-        while True:
-            print("\nEnter your advisory context (type exit to finish): ", end="")
-            prompt = await asyncio.to_thread(input)
-            if prompt.lower() == "exit":
-                break
-            if not prompt.strip():
-                continue
-            await post_message(agent=agent, thread_id=thread.id, content=prompt, thread=thread)
-        print("Cleaning up...")
+    async def initialize(self):
+        instructions = load_instructions()
+        toolset = get_toolset()
+        logger.info("Creating agent...")
+        self.agent = self.project_client.agents.create_agent(
+            model=API_DEPLOYMENT_NAME,
+            name="AdvisoryAgent",
+            instructions=instructions,
+            toolset=toolset,
+            temperature=TEMPERATURE,
+            headers={"x-ms-enable-preview": "true"},
+        )
+        logger.info(f"Created agent, ID: {self.agent.id}")
+        self.thread = self.project_client.agents.threads.create()
+        logger.info(f"Created thread, ID: {self.thread.id}")
+        self.initialized = True
 
+    def handle_request(self, context: dict) -> dict:
+        return asyncio.run(self._handle_request_async(context))
+
+    async def _handle_request_async(self, context: dict) -> dict:
+        if not self.initialized:
+            await self.initialize()
+        import json
+        message = self.project_client.agents.messages.create(
+            thread_id=self.thread.id,
+            role="user",
+            content=json.dumps(context),
+        )
+        run = self.project_client.agents.runs.create(
+            thread_id=self.thread.id,
+            agent_id=self.agent.id,
+        )
+        max_iterations = 60
+        iteration = 0
+        from src.agent_protocol import create_message, log_agent_message
+        while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
+            await asyncio.sleep(2)
+            iteration += 1
+            run = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=run.id)
+            logger.info(f"Run status: {run.status} (iteration {iteration})")
+            if run.status == "requires_action" and run.required_action:
+                logger.info("Run requires action - handling tool calls...")
+                tool_outputs = []
+                for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                    logger.info(f"Executing function: {tool_call.function.name}")
+                    args = json.loads(tool_call.function.arguments)
+                    retries = 0
+                    max_retries = 3
+                    result = None
+                    while retries < max_retries:
+                        try:
+                            if tool_call.function.name == "async_generate_report":
+                                result = await get_toolset().tools[0].coroutine(**args)
+                            elif tool_call.function.name == "async_lookup_advisory":
+                                result = await get_toolset().tools[1].coroutine(**args)
+                            else:
+                                result = f"Tool {tool_call.function.name} not implemented."
+                            msg = create_message(
+                                sender="AdvisoryAgent",
+                                receiver="ToolCall",
+                                action=tool_call.function.name,
+                                context=args,
+                                status="success",
+                                error=None
+                            )
+                            log_agent_message(msg, comment="Tool call success")
+                            break
+                        except Exception as e:
+                            retries += 1
+                            msg = create_message(
+                                sender="AdvisoryAgent",
+                                receiver="ToolCall",
+                                action=tool_call.function.name,
+                                context=args,
+                                status="error",
+                                error={"message": str(e), "retry": retries}
+                            )
+                            log_agent_message(msg, comment=f"Tool call error, retry {retries}")
+                            logger.error(f"Error in tool call {tool_call.function.name}: {e} (retry {retries})")
+                            if retries >= max_retries:
+                                result = {"error": str(e), "retries": retries}
+                    tool_outputs.append({
+                        "tool_call_id": tool_call.id,
+                        "output": result
+                    })
+                if tool_outputs:
+                    run = self.project_client.agents.runs.submit_tool_outputs(
+                        thread_id=self.thread.id,
+                        run_id=run.id,
+                        tool_outputs=tool_outputs
+                    )
+                    logger.info("Tool outputs submitted.")
+        if run.status == "completed":
+            response = self.project_client.agents.messages.get_last_message_by_role(
+                thread_id=self.thread.id,
+                role=MessageRole.AGENT,
+            )
+            if response:
+                return {
+                    "agent": "AdvisoryAgent",
+                    "status": "completed",
+                    "response": "\n".join(t.text.value for t in response.text_messages),
+                    "context": context
+                }
+            else:
+                return {
+                    "agent": "AdvisoryAgent",
+                    "status": "error",
+                    "error": "No response message found.",
+                    "context": context
+                }
+        elif run.status == "failed":
+            return {
+                "agent": "AdvisoryAgent",
+                "status": "error",
+                "error": str(run.last_error),
+                "context": context
+            }
+
+# --- MAIN BLOCK ---
 if __name__ == "__main__":
-    asyncio.run(main())
+    import json
+    import sys
+    import asyncio
+    print("AdvisoryAgent CLI. Choose mode:")
+    print("1. Chat mode (plain text, conversational)")
+    print("2. JSON mode (enter raw JSON context)")
+    mode = None
+    while mode not in ("1", "2"):
+        mode = input("Select mode [1/2]: ").strip()
+    agent = AdvisoryAgent()
+    async def chat_cli_loop():
+        await agent.initialize()
+        print("\nChat mode: Type your message and press Enter. Type 'exit' to quit.")
+        history = []
+        while True:
+            try:
+                user_input = input("You: ")
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting.")
+                break
+            if user_input.strip().lower() == "exit":
+                break
+            if not user_input.strip():
+                continue
+            # Build context with message and history
+            context = {
+                "message": user_input,
+                "history": history[-10:]
+            }
+            result = await agent._handle_request_async(context)
+            agent_reply = result.get("response") or result.get("error") or "(no response)"
+            print(f"Agent: {agent_reply}\n")
+            history.append({"role": "user", "content": user_input})
+            history.append({"role": "agent", "content": agent_reply})
+
+    async def json_cli_loop():
+        await agent.initialize()
+        print("\nJSON mode: Enter context as JSON. Type 'exit' to quit.")
+        while True:
+            try:
+                user_input = input("\nEnter context JSON (or 'exit'): ")
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting.")
+                break
+            if user_input.strip().lower() == "exit":
+                break
+            if not user_input.strip():
+                continue
+            try:
+                context = json.loads(user_input)
+            except Exception as e:
+                print(f"Invalid JSON: {e}")
+                continue
+            result = await agent._handle_request_async(context)
+            print("\nAgent response:")
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+
+    if mode == "1":
+        asyncio.run(chat_cli_loop())
+    else:
+        asyncio.run(json_cli_loop())
