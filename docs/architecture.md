@@ -1,5 +1,78 @@
 ---
 
+
+# What’s missing?
+
+- [ ] Add detailed sequence diagrams for agent-to-agent message flows (Mermaid or similar)
+- [ ] Add example error/retry/escalation flows as diagrams
+- [ ] Add more UI screenshots or wireframes (if available)
+- [ ] Add links to code for each module (once repo is public)
+
+---
+
+# High-Level System Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph UI
+        A[HR Mutation Entry Page]
+        B[Mutations Table]
+        C[Audit Trail]
+        D[Mocked User/Manager Response]
+        E[Insights/Dashboard]
+    end
+    A --> F(InvestigationAgent)
+    B --> F
+    C --> F
+    D --> F
+    E --> F
+    F --> G(RightsCheckAgent)
+    F --> H(RequestForInformationAgent)
+    F --> I(AdvisoryAgent)
+    G --> J(MCV Server)
+    H --> J
+    I --> J
+    J --> K[CSV Data Files]
+    J --> L[Mocked Notifications]
+    J --> M[Audit Trail]
+```
+
+---
+
+# Detailed Workflow Flowchart
+
+For the full, step-by-step workflow diagram (including all status transitions, agent triggers, and audit trail logging), see [`docs/visualFlowchart.mmd`](visualFlowchart.mmd). This is the canonical source for the detailed process flow and matches the workflow described in `application.md`.
+
+> **Note:** Keeping the flowchart in a single `.mmd` file ensures a single source of truth and avoids duplication. Please update `visualFlowchart.mmd` if the workflow changes.
+
+You can view or edit the diagram directly in Mermaid-compatible editors or VS Code extensions.
+
+---
+
+---
+
+# Core Modules and Responsibilities
+
+| Module/File                | Responsibility                                                      |
+|---------------------------|---------------------------------------------------------------------|
+| `src/agent_main.py`       | Orchestrates workflow, agent registration, message routing           |
+| `src/InvestigationAgent.py` | Orchestrates investigation, delegates to other agents               |
+| `src/RightsCheckAgent.py` | Checks user rights via MCV server                                    |
+| `src/RequestForInformationAgent.py` | Handles clarifications, manager validation, notifications   |
+| `src/AdvisoryAgent.py`    | Generates advisory report and recommendations                        |
+| `src/agent_protocol.py`   | Defines Agent2Agent protocol, message schema, logging                |
+| `src/mcv_server.py`       | Implements MCV server API, tool call endpoints, audit logging        |
+| `src/ui.py`               | Streamlit UI entrypoint, navigation, page rendering                  |
+| `data/*.csv`              | Data storage: users, roles, authorisations, mutations, audit trail   |
+| `docs/architecture.md`    | Architecture documentation, diagrams, protocol, API docs             |
+| `docs/application.md`     | Application overview, user stories, acceptance criteria, onboarding   |
+| `docs/CONTRIBUTING.md`    | Contributor onboarding, quickstart, workflow                         |
+| `docs/csv_schemas.md`     | Canonical CSV schemas, sample data                                   |
+| `docs/prompts.md`         | Prompt templates, best practices for agentic coding                  |
+
+---
+---
+
 ## Agent Class Interfaces
 
 Each agent is implemented as a Python class with a standard interface. The main method is `handle_request(context: dict) -> dict`, which processes the incoming request and returns a result dict.
@@ -650,3 +723,17 @@ Agents interact with the MCV server exclusively for all tool calls. Below are th
 | 5    | AdvisoryAgent           | Report Generation, Data Lookup |
 
 This mapping ensures every agent action is routed through the MCV server, fully auditable, and aligned with the workflow.
+
+---
+
+## Audit Logging Policy and Mechanism
+
+- **All agent actions** (including every major step and error) are logged to `audit_trail.csv` via the `log_agent_message()` function in `agent_protocol.py`.
+- **All UI actions** that mutate state (e.g., HR mutation creation, status changes) are logged to `audit_trail.csv` via a dedicated logging helper in `ui.py`.
+- **All MCV server tool calls and results** are logged to `audit_trail.csv` via the `log_audit()` function in `mcv_server.py`.
+- **Agents do not directly mutate state files** (such as `hr_mutations.csv`). All state changes are orchestrated via the UI or MCV server, which are responsible for logging.
+- **No agent method or helper function** should directly write to or mutate data files without a corresponding audit log entry.
+- **Log rotation/archiving** is implemented: if `audit_trail.csv` exceeds 1MB, it is archived and a new file is created.
+- **Audit trail reconstruction**: The function `get_audit_trail_for_mutation(mutation_id)` in `data_access.py` allows full traceability for any mutation.
+
+This policy ensures that every state change and agent action is auditable, traceable, and compliant with best practices for security and compliance.

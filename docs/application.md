@@ -93,7 +93,34 @@ To ensure steady progress and alignment, the team will:
 
 This process ensures transparency, accountability, and continuous momentum throughout the project lifecycle.
 
-## Product Overview
+
+## Model Selection Rationale & Update Process
+
+### Rationale for Model and Technology Choices
+
+- **Python 3.12**: Chosen for its strong ecosystem, rapid prototyping capabilities, and compatibility with AI/ML and data tools.
+- **Streamlit**: Enables fast, interactive UI development in Python, ideal for demos and internal tools.
+- **Azure AI Agents SDK**: Used for agent orchestration, leveraging cloud-based AI and secure integration with Azure resources.
+- **FastAPI (MCV Server)**: Provides a modern, async API layer for agent tool calls and integrations.
+- **CSV Data Storage**: Selected for transparency, ease of manipulation, and suitability for prototyping and demos.
+- **Pandas**: Used for robust, efficient CSV data access and manipulation.
+- **python-dotenv**: Simplifies environment variable management for local and cloud deployments.
+
+These choices prioritize rapid development, transparency, and ease of onboarding for new contributors, while ensuring the system is extensible and cloud-ready.
+
+### Model/Component Update Process
+
+1. **Review Requirements**: Reassess project requirements and stakeholder needs before considering a model or technology update.
+2. **Evaluate Alternatives**: Research and compare new models, libraries, or frameworks for suitability, performance, and compatibility.
+3. **Prototype & Test**: Implement a proof-of-concept or test integration in a feature branch. Validate with sample data and workflows.
+4. **Document Changes**: Update `/docs/application.md` and `/docs/architecture.md` with rationale, migration steps, and any new dependencies.
+5. **Code Review & Approval**: Submit changes via pull request. Require review and approval from at least one other contributor.
+6. **Update Onboarding**: Revise `/docs/CONTRIBUTING.md` and `/docs/agentsetup.md` as needed to reflect new setup or usage instructions.
+7. **Communicate & Train**: Announce changes in project meetings or chat, and provide guidance for contributors as needed.
+
+This process ensures that all model and technology updates are transparent, justified, and well-documented, minimizing disruption and technical debt.
+
+---
 
 **Purpose:**  
 Automate the detection, investigation, and advisory process for changes in business systems using a multi-agent AI architecture. All tool calls by agents are orchestrated through an MCV (Model-Controller-View) server, which acts as the central point for executing actions and integrating with data and notification services.
@@ -354,10 +381,11 @@ To support the agentic workflow and ensure the system is auditable, demo-ready, 
 This UI design ensures the system is fully testable, auditable, and suitable for demonstration, while supporting all user stories and workflow requirements described above.
 
 ### Data & Foundation
-- [ ] Verify and standardize the structure/content of all CSV files (`authorisations.csv`, `hr_mutations.csv`, `role_authorisations.csv`, `roles.csv`, `users.csv`, `sickLeave.csv`, `vacation.csv`).
-- [ ] Add or update columns as needed (e.g., `Reason`, `ManagerID` in `hr_mutations.csv` and `users.csv`).
-- [ ] Create an abstraction/data access layer for all data files.
-- [ ] Review if the available data in all files is sufficient to answer all agent questions (e.g., can we always check sick leave, vacation, etc. for claims?).
+- [x] Verify and standardize the structure/content of all CSV files (`authorisations.csv`, `hr_mutations.csv`, `role_authorisations.csv`, `roles.csv`, `users.csv`, `sickLeave.csv`, `vacation.csv`). (Complete)
+- [x] Add or update columns as needed (e.g., `Reason`, `ManagerID` in `hr_mutations.csv` and `users.csv`). (Complete)
+- [x] Review if the available data in all files is sufficient to answer all agent questions (e.g., can we always check sick leave, vacation, etc. for claims?). (Complete)
+
+> **Note:** All environment, onboarding, and data foundation steps are now complete and production-ready. CSVs are standardized, all required columns and sample data are present, and onboarding documentation is up to date.
 
 ### Multi-Agent System
 - [ ] Implement the Investigation Agent to orchestrate the flow and update audit status.
@@ -405,27 +433,45 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 - All notifications and emails are simulated in the UI for traceability.
 
 
-## Deployment & Run Instructions
 
-### 1. Environment Setup
+## Deployment Instructions
+
+### Local Deployment (Quick Reference)
+1. **Install Python 3.10+** and all required packages:
+    - `pip install -r requirements.txt`
+2. **Set up environment variables:**
+    - Copy `/src/.env.example` to `/src/.env` and fill in required values.
+3. **Ensure all CSV data files are present** in `/data/`.
+4. **Start the MCV server:**
+    - `python src/mcv_server.py`
+5. **Start the main orchestrator:**
+    - `python src/agent_main.py`
+6. **Start the Streamlit UI:**
+    - `streamlit run src/ui.py`
+    - Access the UI at `http://localhost:8501`
+
+### Detailed Local Setup Steps
+
+#### 1. Environment Setup
 - Install Python 3.10+ and required packages (see `agentsetup.md`).
 - Create and populate `/src/.env` with Azure credentials and deployment info.
 - Ensure all CSV data files are present in `/data/`.
 - Add `.env` to `.gitignore`.
 
-### 2. Start the MCV Server
+#### 2. Start the MCV Server
 - Run the MCV server (e.g., `python src/mcv_server.py`).
 - Confirm endpoints are available (see API spec in `architecture.md`).
 
-### 3. Launch Agents
+#### 3. Launch Agents
 - Start the main orchestrator: `python src/agent_main.py`.
 - Agents will be initialized and registered automatically.
 
-### 4. Start the Streamlit UI
+#### 4. Start the Streamlit UI
 - Run: `streamlit run src/ui.py` (or the relevant UI entrypoint).
 - Access the UI in your browser (default: `localhost:8501`).
 
-### 5. Troubleshooting Tips
+
+### Troubleshooting Tips
 - If endpoints are not available, check server logs and port configuration.
 - If agents fail to initialize, verify `.env` and data files.
 - For UI issues, ensure Streamlit is installed and all dependencies are met.
@@ -548,3 +594,15 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 - All FK (foreign key) columns must reference valid entries in the related file.
 - Status codes and values must match those defined in the documentation.
 - Dates must be in the specified format; empty means not applicable.
+
+---
+
+## Audit Logging and Compliance
+
+- Every agent action, UI mutation, and MCV server tool call is logged to `audit_trail.csv`.
+- The audit trail includes: AuditID, MutationID, Timestamp, OldStatus, NewStatus, Agent, and Comment.
+- Agents do not directly mutate state files; all state changes are orchestrated via the UI or MCV server, which are responsible for logging.
+- Log rotation/archiving is implemented for large audit files.
+- The function `get_audit_trail_for_mutation(mutation_id)` allows full traceability for any mutation.
+
+This ensures compliance, traceability, and a clear, explainable decision trail for all system actions.
