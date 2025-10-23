@@ -5,7 +5,7 @@ from InvestigationAgent import InvestigationAgent
 from RightsCheckAgent import RightsCheckAgent
 from RequestForInformationAgent import RequestForInformationAgent
 from AdvisoryAgent import AdvisoryAgent
-from agent_protocol import AgentMessage
+import logging
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -33,6 +33,8 @@ def mcv_report_generate(mutation_id, context):
     payload = {"mutation_id": mutation_id, "context": context}
     return requests.post(url, json=payload).json()
 
+
+# --- Agent orchestrator for Azure model-based agents ---
 class AgentOrchestrator:
     def __init__(self):
         self.agents = {
@@ -42,14 +44,17 @@ class AgentOrchestrator:
             "AdvisoryAgent": AdvisoryAgent(),
         }
 
-    def route_message(self, msg: AgentMessage):
-        """Route a message to the appropriate agent based on receiver."""
-        agent = self.agents.get(msg.receiver)
+    def route(self, agent_name, context):
+        """
+        Route context to the specified agent and return the result dict.
+        """
+        agent = self.agents.get(agent_name)
         if not agent:
-            raise ValueError(f"Unknown agent: {msg.receiver}")
-        return agent.handle_request(msg.context)
+            raise ValueError(f"Unknown agent: {agent_name}")
+        return agent.handle_request(context)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     orchestrator = AgentOrchestrator()
     # Full end-to-end workflow
     initial_context = {
@@ -57,17 +62,20 @@ if __name__ == "__main__":
         "user_id": "u001",
         "system": "Payroll",
         "access_level": "Admin",
-        "next_agent": "RightsCheckAgent",
         "old_status": "Pending",
         "new_status": "Investigation Started"
     }
     # Step 1: InvestigationAgent
-    msg1 = orchestrator.agents["InvestigationAgent"].handle_request(initial_context)
+    result1 = orchestrator.route("InvestigationAgent", initial_context)
+    logging.info(f"InvestigationAgent result: {result1}")
     # Step 2: RightsCheckAgent
-    msg2 = orchestrator.route_message(msg1)
+    result2 = orchestrator.route("RightsCheckAgent", result1.get("context", {}))
+    logging.info(f"RightsCheckAgent result: {result2}")
     # Step 3: RequestForInformationAgent
-    msg3 = orchestrator.route_message(msg2)
+    result3 = orchestrator.route("RequestForInformationAgent", result2.get("context", {}))
+    logging.info(f"RequestForInformationAgent result: {result3}")
     # Step 4: AdvisoryAgent
-    msg4 = orchestrator.route_message(msg3)
+    result4 = orchestrator.route("AdvisoryAgent", result3.get("context", {}))
+    logging.info(f"AdvisoryAgent result: {result4}")
     # Step 5: (Optional) Loop back or finalize as needed
-    print("Workflow complete. Advisory report:", msg4.context.get('report_result'))
+    print("Workflow complete. Advisory report:", result4.get("response"))

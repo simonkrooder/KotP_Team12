@@ -1,3 +1,29 @@
+# Onboarding: Implementing and Extending Agents
+
+To implement or extend an agent:
+
+1. Create a new Python class (e.g., `InvestigationAgent`) in `/src/`.
+2. Implement a `handle_request(context)` method.
+3. In `handle_request`, use the Azure AI SDK (see example in `architecture.md`) to call the appropriate Azure-hosted model, using credentials from `.env`.
+4. Do not register or persist agents in Azure; all orchestration is local.
+5. Use the structure and best practices from `src/old/agent_example.py` as a template for model calls and tool integration.
+6. Add or update docstrings to clarify the agent's pattern and responsibilities.
+7. Add tests and example usage for your agent.
+
+This ensures all agents follow the correct pattern and are easy to maintain and extend.
+# Agent Implementation Pattern: Local Class, Azure Model Inference
+
+**Agents in this project are implemented as local Python classes.**
+
+- Each agent (e.g., InvestigationAgent, RightsCheckAgent) is a Python class with a `handle_request(context)` method.
+- When handling a request, the agent uses the Azure AI SDK (with credentials from `.env`) to call an Azure-hosted model endpoint for reasoning, decision-making, or text generation.
+- No persistent agent registration or orchestration is performed in Azure. All agent orchestration, message passing, and workflow logic is handled locally in Python.
+- The code structure follows the pattern in `src/old/agent_example.py`, but with orchestration and message passing handled locally.
+- This approach allows for flexible, testable, and auditable agent logic, while leveraging the power of Azure-hosted models for intelligence.
+
+**Summary:**
+> Agents are local Python classes that use Azure-hosted models for inference. All orchestration and workflow logic is local. No persistent agent registration in Azure.
+
 # Application Documentation
 
 ## Project Review & Progress Tracking

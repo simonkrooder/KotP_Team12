@@ -1,63 +1,37 @@
-# Walkthrough: Testing All Flows and Components
+# Migration Plan: Refactor Agents to Local Class + Azure Model Pattern
 
-This section provides a step-by-step guide to test the full workflow and all major components. Follow these steps to validate the system end-to-end:
+This section describes the steps to refactor all agents to the correct pattern:
 
-## 1. Preparation
-- Ensure all dependencies are installed:
-  - `pip install -r requirements.txt`
-- Ensure all CSV files in `/data/` are present and contain sample/mock data.
-- Ensure your `.env` file is set up in `/src/` with the required environment variables (see `/src/.env.example`).
+```markdown
+# High-level steps (for intent and onboarding):
+- [x] For each agent (`InvestigationAgent`, `RightsCheckAgent`, `RequestForInformationAgent`, `AdvisoryAgent`):
+	- [x] Refactor the agent as a local Python class with a `handle_request(context)` method.
+	- [x] In `handle_request`, use the Azure AI SDK (using credentials from `.env`) to call the appropriate Azure-hosted model endpoint for reasoning/decision-making.
+	- [x] Remove any code that attempts to register or persist agents in Azure.
+	- [x] Ensure all orchestration, message passing, and workflow logic is handled locally in Python (see `agent_main.py`).
+	- [x] Use the structure and best practices from `src/old/agent_example.py` as a template for model calls and tool integration.
+	- [x] Add or update docstrings to clarify the agent's pattern and responsibilities.
 
-## 2. Start the MCV Server
-- Open a terminal in the project root.
-- Start the MCV server:
-  - `python src/mcv_server.py`
-- Confirm the FastAPI server is running (default: http://localhost:8000/docs for API docs).
+# Detailed implementation steps:
+- [x] For each agent:
+	- [x] Import and use `get_project_client` and `get_model_deployment` from `azure_client.py`.
+	- [x] In `handle_request`:
+		- [x] Construct a prompt from the context (see `agent_example.py`).
+		- [x] Call the Azure model using the SDK and return the result.
+		- [x] Integrate async tool functions if needed.
+		- [x] Handle errors, retries, and escalation as before.
+	- [x] Remove or refactor any local business logic now handled by the model.
+	- [x] Add or update docstrings to clarify the agent's pattern and responsibilities.
+	- [x] Add a code comment referencing the relevant docs section.
+- [x] Update `agent_main.py` to instantiate and orchestrate the refactored agents.
+- [x] Update or add unit and integration tests for the new agent pattern (mock Azure model calls, validate prompt construction and response handling).
+- [x] Add minimal example usage for each agent in `/tests/` or `/examples/`.
+- [x] Update onboarding/setup docs and troubleshooting tips in `/docs/CONTRIBUTING.md` and `/docs/agentsetup.md`.
+```
 
-## 3. Start the Streamlit UI
-- Open a new terminal in the project root.
-- Start the UI:
-  - `streamlit run src/ui.py`
-- The UI should open in your browser (default: http://localhost:8501).
+**Summary:**
+> All agents should be local Python classes that use Azure-hosted models for inference. No persistent agent registration in Azure. All orchestration is local.
 
-## 4. Run the Agent Orchestrator
-- Open another terminal in the project root.
-- Start the agent orchestrator:
-  - `python src/agent_main.py`
-- This process will handle agent registration, message routing, and workflow orchestration.
-
-## 5. Walk Through a Full Flow
-1. **HR Mutation Entry:**
-	- In the UI, go to the "HR Mutation Entry" page.
-	- Submit a new mutation (fill in required fields).
-2. **Mutations Table:**
-	- Go to the "Mutations Table" page.
-	- Find your mutation; verify its status and details.
-	- Use the "View Audit Trail" button to see the audit log for this mutation.
-3. **Agent Processing:**
-	- The agent orchestrator (`agent_main.py`) will process the mutation through the workflow:
-	  - InvestigationAgent → RightsCheckAgent → RequestForInformationAgent → AdvisoryAgent
-	- Watch the status updates in the UI and audit trail.
-4. **Mocked User/Manager Response:**
-	- Use the "Mocked User/Manager Response" page to simulate responses if required by the workflow.
-5. **Audit Trail:**
-	- Use the "Audit Trail" page to view and export logs for any mutation.
-6. **Insights/Dashboard:**
-	- Review the "Insights/Dashboard" page for summary statistics and workflow health.
-
-## 6. Test Edge Cases and Error Handling
-- Try submitting incomplete or invalid mutations to test validation.
-- Simulate errors or retries by interrupting agent processes and observing recovery.
-- Check that all actions are logged in `audit_trail.csv`.
-
-## 7. Review Logs and Data
-- Inspect `/data/audit_trail.csv` for a complete log of all actions.
-- Inspect `/data/hr_mutations.csv` for status changes.
-
-## 8. Stopping the System
-- Stop all running Python processes (UI, MCV server, agent orchestrator) when done.
-
----
 # TODO.md: Canonical Build Checklist
 
 > **Note:** This checklist is now supplemented by, `/docs/csv_schemas.md`, `/docs/CONTRIBUTING.md`, and `/docs/prompts.md`. Always reference these files for the latest detailed steps, schemas, onboarding, and prompt templates.

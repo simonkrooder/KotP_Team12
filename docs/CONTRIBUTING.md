@@ -2,6 +2,12 @@
 
 Welcome to the Multi-Agent Access Control Demo project! This guide will help you get started as a contributor and ensure smooth collaboration.
 
+**Agent Implementation Pattern:**
+All agents must be implemented as local Python classes with a `handle_request(context)` method that calls an Azure-hosted model for reasoning/decision-making, using the Azure AI SDK and credentials from `.env`. See `src/AdvisoryAgent.py` and `/examples/agent_usage_example.py` for reference.
+
+**Example usage:**
+See `/examples/agent_usage_example.py` for a minimal example of agent instantiation and usage.
+
 ### 1. Project Setup
 - Clone the repository and review the `/docs/` for architecture, approach, and setup.
 - Install Python 3.10+ and all dependencies listed in `requirements.txt`.
@@ -40,5 +46,11 @@ Welcome to the Multi-Agent Access Control Demo project! This guide will help you
 ### 7. Changelog & Dev Diary
 - Summarize major changes and decisions in `CHANGELOG.md` or a dev diary.
 - Use clear commit messages to indicate documentation and code changes.
+
+## Troubleshooting Tips
+- If Azure model calls fail, check your `.env` file for correct credentials and deployment names.
+- If tests are not discovered, ensure your test files and classes follow the `test_*.py` and `Test*` naming conventions, and run tests using `python -m unittest discover` from the project root.
+- For agent usage, see `/examples/agent_usage_example.py` for working patterns.
+- For more details on the agent pattern, see `/docs/architecture.md` and `/docs/application.md`.
 
 Thank you for contributing! Your work helps ensure the project is robust, auditable, and demo-ready.

@@ -1,3 +1,41 @@
+# Example: Minimal Agent Using Azure Model
+
+```python
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../src/.env'))
+PROJECT_ENDPOINT = os.getenv('PROJECT_ENDPOINT')
+MODEL_DEPLOYMENT = os.getenv('AGENT_MODEL_DEPLOYMENT_NAME')
+
+project_client = AIProjectClient(
+    endpoint=PROJECT_ENDPOINT,
+    credential=DefaultAzureCredential(),
+)
+
+class InvestigationAgent:
+    def handle_request(self, context):
+        # Compose prompt from context
+        prompt = f"Investigate mutation: {context['mutation_id']}"
+        # Call Azure model
+        response = project_client.completions.create(
+            deployment=MODEL_DEPLOYMENT,
+            prompt=prompt,
+            max_tokens=256
+        )
+        return {'result': response.choices[0].text}
+```
+
+This pattern should be used for all agents: local class, Azure model call, no persistent agent registration.
+# Agent Implementation Pattern: Local Class, Azure Model Inference
+
+Agents are implemented as local Python classes. Each agent uses the Azure AI SDK to call Azure-hosted models for reasoning and decision-making, but agents are not registered or orchestrated as persistent Azure resources. All orchestration, message passing, and workflow logic is handled locally in Python.
+
+This pattern is illustrated in `src/old/agent_example.py` and should be followed for all agent implementations.
+
 ---
 
 
@@ -56,10 +94,10 @@ You can view or edit the diagram directly in Mermaid-compatible editors or VS Co
 | Module/File                | Responsibility                                                      |
 |---------------------------|---------------------------------------------------------------------|
 | `src/agent_main.py`       | Orchestrates workflow, agent registration, message routing           |
-| `src/InvestigationAgent.py` | Orchestrates investigation, delegates to other agents               |
-| `src/RightsCheckAgent.py` | Checks user rights via MCV server                                    |
-| `src/RequestForInformationAgent.py` | Handles clarifications, manager validation, notifications   |
-| `src/AdvisoryAgent.py`    | Generates advisory report and recommendations                        |
+| `src/InvestigationAgent.py` | Local agent class; calls Azure model for investigation logic        |
+| `src/RightsCheckAgent.py` | Local agent class; calls Azure model for rights checking             |
+| `src/RequestForInformationAgent.py` | Local agent class; calls Azure model for clarifications, manager validation |
+| `src/AdvisoryAgent.py`    | Local agent class; calls Azure model for advisory/report generation  |
 | `src/agent_protocol.py`   | Defines Agent2Agent protocol, message schema, logging                |
 | `src/mcv_server.py`       | Implements MCV server API, tool call endpoints, audit logging        |
 | `src/ui.py`               | Streamlit UI entrypoint, navigation, page rendering                  |

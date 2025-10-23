@@ -1,8 +1,13 @@
-
 # Agent Setup Checklist
 
 This checklist provides step-by-step instructions for implementing the multi-agent system as described in `architecture.md` and `application.md`.  
 **Use this as your development and onboarding guide.**
+
+**Agent Implementation Pattern:**
+All agents must be implemented as local Python classes with a `handle_request(context)` method that calls an Azure-hosted model for reasoning/decision-making, using the Azure AI SDK and credentials from `.env`. See `src/AdvisoryAgent.py` and `/examples/agent_usage_example.py` for reference.
+
+**Example usage:**
+See `/examples/agent_usage_example.py` for a minimal example of agent instantiation and usage.
 
 ---
 
@@ -22,39 +27,43 @@ This checklist provides step-by-step instructions for implementing the multi-age
 
 
 
-
 ## 2. Project Structure & Environment
 
-- [x] Ensure `/src/.env` contains all required Azure credentials and deployment info (see `/src/.env.example`). (Complete)
-- [x] Add `.env` to `.gitignore` if not already present. (Complete)
-- [x] Document all environment variables in `/docs/application.md` under an 'Environment Variables' section. (Complete)
-- [x] Create a sample `.env.example` file for onboarding, listing all required variables with placeholder values. (Complete)
-- [x] Best practices are followed: `.env` is never committed, `python-dotenv` is used, and onboarding docs are up to date. (Complete)
-
-> **Note:** All environment and onboarding steps are now complete and production-ready. No further action required for this section.
-
+- [ ] Ensure `/src/.env` contains all required Azure credentials and deployment info:
+    - [ ] `AGENT_MODEL_DEPLOYMENT_NAME` (Name of the Azure OpenAI deployment for agents)
+    - [ ] `PROJECT_ENDPOINT` (Base URL for the MCV server or Azure project)
+    - [ ] `AZURE_SUBSCRIPTION_ID` (Azure subscription ID for resource access)
+    - [ ] `AZURE_RESOURCE_GROUP` (Azure resource group name)
+    - [ ] Any other required environment variables (document below)
+- [ ] Add `.env` to `.gitignore` if not already present
+- [ ] Document all environment variables in `/docs/application.md` under an 'Environment Variables' section
+- [ ] Create a sample `.env.example` file for onboarding, listing all required variables with placeholder values
+- [ ] Best practices:
+    - Never commit real `.env` files or secrets to version control
+    - Use `python-dotenv` to load environment variables in all entrypoints
+    - Reference environment variables in code using `os.getenv()`
+    - Update `.env.example` whenever a new variable is added
 
 
 ## 3. Data Foundation
 
-- [x] Verify and standardize all CSV files:
-    - [x] `authorisations.csv`
-    - [x] `hr_mutations.csv`
-    - [x] `role_authorisations.csv`
-    - [x] `roles.csv`
-    - [x] `users.csv`
-    - [x] `sickLeave.csv`
-    - [x] `vacation.csv`
-    - [x] `audit_trail.csv`
-- [x] For each CSV, define and document:
-    - [x] Column names
-    - [x] Data types
-    - [x] Required fields
-    - [x] Example row
-- [x] Add or update columns as needed (e.g., `Reason`, `ManagerID`).
-- [x] Add schema documentation to `/docs/csv_schemas.md`.
-
-> **Note:** All CSVs are present, standardized, and fully documented. Data foundation is complete and demo/test ready.
+- [ ] Verify and standardize all CSV files:
+    - [ ] `authorisations.csv`
+    - [ ] `hr_mutations.csv`
+    - [ ] `role_authorisations.csv`
+    - [ ] `roles.csv`
+    - [ ] `users.csv`
+    - [ ] `sickLeave.csv`
+    - [ ] `vacation.csv`
+    - [ ] `audit_trail.csv`
+- [ ] For each CSV, define and document:
+    - [ ] Column names
+    - [ ] Data types
+    - [ ] Required fields
+    - [ ] Example row
+- [ ] Add or update columns as needed (e.g., `Reason`, `ManagerID`)
+- [ ] Implement a data access layer for reading/writing CSVs
+- [ ] Add schema documentation to `/docs/csv_schemas.md`
 
 
 ## 4. Agent Code Implementation
@@ -146,6 +155,12 @@ This checklist provides step-by-step instructions for implementing the multi-age
 - [ ] Add usage instructions and troubleshooting tips
 - [ ] Maintain a running changelog in `CHANGELOG.md`
 - [ ] Add a developer onboarding/contribution guide in `/docs/CONTRIBUTING.md`
+
+## Troubleshooting Tips
+- If you encounter errors with Azure model calls, verify your `.env` file and Azure resource access.
+- If agent tests are not running, ensure your test files and classes are named correctly and use `python -m unittest discover`.
+- For agent usage patterns, see `/examples/agent_usage_example.py`.
+- For the canonical agent pattern, see `/docs/architecture.md` and `/docs/application.md`.
 
 ---
 

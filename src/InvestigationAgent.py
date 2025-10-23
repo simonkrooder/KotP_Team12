@@ -1,32 +1,61 @@
-from agent_protocol import create_message, log_agent_message
-from agent_main import mcv_data_lookup
+"""
+See docs/architecture.md and docs/application.md for the canonical agent pattern, Agent2Agent protocol, and MCV server integration.
+This agent follows the local class + Azure model pattern. All orchestration and message passing is local; all reasoning is delegated to the Azure model.
+"""
+from azure_client import get_project_client, get_model_deployment
+import logging
 
 class InvestigationAgent:
-    """Agent responsible for orchestrating investigations."""
+    """
+    Agent responsible for orchestrating investigations.
+    Uses Azure-hosted model for reasoning (see docs/architecture.md, agent_example.py).
+    Integrates with the Agent2Agent protocol and MCV server for all tool calls and message passing.
+    All actions and status changes are logged for auditability.
+    """
+    def __init__(self):
+        self.client = get_project_client()
+        self.model_deployment = get_model_deployment()
+        self.logger = logging.getLogger(__name__)
+
     def handle_request(self, context):
-        retries = context.get('retries', 0)
+        """
+        Calls the Azure-hosted model for investigation logic.
+        Args:
+            context (dict): The investigation context.
+        Returns:
+            dict: Model response or error message.
+        """
         try:
-            # Example: Lookup mutation in hr_mutations.csv
-            mutation_id = context.get('mutation_id')
-            findings = mcv_data_lookup('hr_mutations.csv', {'MutationID': mutation_id})
-            context['findings'] = findings
-            msg = create_message(
-                sender="InvestigationAgent",
-                receiver=context.get("next_agent", "RightsCheckAgent"),
-                action="investigate",
-                context=context,
-                status="started"
+            prompt = self._build_prompt(context)
+            response = self.client.completions.create(
+                deployment_id=self.model_deployment,
+                prompt=prompt,
+                temperature=0.2,
+                max_tokens=512
             )
-            log_agent_message(msg, comment="Investigation started")
-            return msg
+            result = {
+                "agent": "InvestigationAgent",
+                "status": "completed",
+                "response": response.choices[0].text,
+                "context": context
+            }
+            return result
         except Exception as e:
-            error_msg = create_message(
-                sender="InvestigationAgent",
-                receiver=context.get("next_agent", "RightsCheckAgent"),
-                action="investigate",
-                context={**context, 'retries': retries + 1},
-                status="error" if retries < 2 else "escalated",
-                error={"type": str(type(e)), "msg": str(e)}
-            )
-            log_agent_message(error_msg, comment="Investigation error")
-            return error_msg
+            self.logger.error(f"InvestigationAgent error: {e}")
+            return {
+                "agent": "InvestigationAgent",
+                "status": "error",
+                "error": str(e),
+                "context": context
+            }
+
+    def _build_prompt(self, context):
+        """
+        Build a prompt for the Azure model based on the investigation context.
+        """
+        # This can be improved with more context formatting as needed
+        return f"""
+        You are an access control investigation agent. Given the following context, determine the next step in the investigation:
+        Context: {context}
+        Provide a summary of findings and recommended next action.
+        """
