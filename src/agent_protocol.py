@@ -71,20 +71,12 @@ def validate_message(msg: dict) -> bool:
 
 def log_agent_message(msg: AgentMessage, comment: Optional[str] = None):
     """Log an agent message to audit_trail.csv (preserving comments and header)."""
-    # Read existing lines (preserve comments and header)
-    if os.path.exists(AUDIT_FILE):
-        with open(AUDIT_FILE, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        header_idx = next((i for i, l in enumerate(lines) if l.strip().startswith('AuditID')), None)
-        if header_idx is not None:
-            header = lines[:header_idx+1]
-            data = lines[header_idx+1:]
-        else:
-            header = []
-            data = lines
-    else:
-        header = ["AuditID,MutationID,Timestamp,OldStatus,NewStatus,Agent,Comment\n"]
-        data = []
+    # Log rotation: archive if file exceeds 5MB
+    MAX_LOG_SIZE = 5 * 1024 * 1024  # 5MB
+    if os.path.exists(AUDIT_FILE) and os.path.getsize(AUDIT_FILE) > MAX_LOG_SIZE:
+        archive_name = AUDIT_FILE.replace('.csv', f'_archive_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.csv')
+        os.rename(AUDIT_FILE, archive_name)
+    # Prepare row
     audit_id = str(uuid.uuid4())[:8]
     timestamp = msg.timestamp
     mutation_id = msg.context.get('mutation_id', '')
@@ -93,5 +85,9 @@ def log_agent_message(msg: AgentMessage, comment: Optional[str] = None):
     agent = msg.sender
     comment_str = comment or json.dumps(msg.dict())
     row = f'{audit_id},{mutation_id},{timestamp},{old_status},{new_status},{agent},{comment_str}\n'
-    with open(AUDIT_FILE, 'w', encoding='utf-8') as f:
-        f.writelines(header + data + [row])
+    # Write header if file does not exist
+    write_header = not os.path.exists(AUDIT_FILE)
+    with open(AUDIT_FILE, 'a', encoding='utf-8') as f:
+        if write_header:
+            f.write("AuditID,MutationID,Timestamp,OldStatus,NewStatus,Agent,Comment\n")
+        f.write(row)

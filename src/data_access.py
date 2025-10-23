@@ -141,8 +141,14 @@ def _check_type(series, expected_type):
     if expected_type == 'string':
         return is_string_dtype(series) or series.dtype == object
     if expected_type == 'date':
-        # Accept string or datetime for date
-        return is_string_dtype(series) or is_datetime64_any_dtype(series)
+        # Accept string or datetime for date, and allow empty/NaN for optional columns
+        # If all non-empty values are string or datetime, it's valid
+        mask = (~series.isna()) & (series.astype(str).str.strip() != '')
+        if mask.any():
+            filtered = series.loc[mask]
+            return (is_string_dtype(series) or is_datetime64_any_dtype(series)
+                    or filtered.apply(lambda x: isinstance(x, str) or pd.isna(x)).all())
+        return True
     if expected_type == 'datetime':
         return is_datetime64_any_dtype(series) or is_string_dtype(series)
     return True  # fallback
@@ -177,10 +183,20 @@ def validate_schema(name, df):
 _ORIG_read_csv = read_csv
 def read_csv(name, **kwargs):
     df = _ORIG_read_csv(name, **kwargs)
+    # Ensure OldValue/NewValue are string for hr_mutations
+    if name == 'hr_mutations':
+        for col in ['OldValue', 'NewValue']:
+            if col in df.columns:
+                df[col] = df[col].astype(str)
     validate_schema(name, df)
     return df
 
 _ORIG_write_csv = write_csv
 def write_csv(name, df, **kwargs):
+    # Ensure OldValue/NewValue are string for hr_mutations
+    if name == 'hr_mutations':
+        for col in ['OldValue', 'NewValue']:
+            if col in df.columns:
+                df[col] = df[col].astype(str)
     validate_schema(name, df)
     _ORIG_write_csv(name, df, **kwargs)

@@ -1,2 +1,3 @@
 MutationID,Timestamp,ChangedBy,ChangedFor,ChangeType,FieldChanged,OldValue,NewValue,Environment,Metadata,change_investigation,Reason,ManagerID
 test1234,2025-10-23T10:00:00,u001,u002,Update,Salary,50000,52000,HRProd,{},Pending,Annual raise,u003
+6fe4e19e,2025-10-23T21:48:58.523845+00:00,u001,u001,Create,Salary,,1200,HRProd,{},Pending,,u001

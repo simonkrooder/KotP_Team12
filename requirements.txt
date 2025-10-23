@@ -7,3 +7,14 @@ azure-ai-agents
 azure-ai-projects
 azure-identity
 python-dotenv
+fastapi
+starlette
+httpx
+pytest
+pytest-asyncio
+pydantic
+fastapi
+starlette
+httpx
+pytest
+pytest-asyncio

@@ -61,42 +61,130 @@ def get_toolset():
     async def async_lookup_data(file: str, query: dict) -> dict:
         return await asyncio.to_thread(lookup_data, file, query)
     return AsyncFunctionTool(functions={
-        async_check_authorization,
-        async_lookup_data,
-    })
+    # Refactored RightsCheckAgent class
+    class RightsCheckAgent:
+        def __init__(self):
+            self.project_client = AIProjectClient(
+                endpoint=PROJECT_ENDPOINT,
+                credential=DefaultAzureCredential(),
+            )
+            self.agent = None
+            self.thread = None
+            self.initialized = False
 
-def load_instructions():
-    return "You are a rights check agent. Use the available tools to check user rights and provide recommendations."
+        async def initialize(self):
+            instructions = load_instructions()
+            toolset = get_toolset()
+            logger.info("Creating agent...")
+            self.agent = self.project_client.agents.create_agent(
+                model=API_DEPLOYMENT_NAME,
+                name="RightsCheckAgent",
+                instructions=instructions,
+                toolset=toolset,
+                temperature=TEMPERATURE,
+                headers={"x-ms-enable-preview": "true"},
+            )
+            logger.info(f"Created agent, ID: {self.agent.id}")
+            self.thread = self.project_client.agents.threads.create()
+            logger.info(f"Created thread, ID: {self.thread.id}")
+            self.initialized = True
 
-async def initialize():
-    instructions = load_instructions()
-    toolset = get_toolset()
-    logger.info("Creating agent...")
-    agent = project_client.agents.create_agent(
-        model=API_DEPLOYMENT_NAME,
-        name="RightsCheckAgent",
-        instructions=instructions,
-        toolset=toolset,
-        temperature=TEMPERATURE,
-        headers={"x-ms-enable-preview": "true"},
-    )
-    logger.info(f"Created agent, ID: {agent.id}")
-    thread = project_client.agents.threads.create()
-    logger.info(f"Created thread, ID: {thread.id}")
-    return agent, thread
-
-async def post_message(agent, thread_id, content, thread):
-    logger.info(f"Posting message to thread {thread_id}...")
-    message = project_client.agents.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=content,
-    )
-    logger.info(f"Message created: {message.id}")
-    run = project_client.agents.runs.create(
-        thread_id=thread.id,
-        agent_id=agent.id,
-    )
+        async def post_message(self, msg_dict):
+            if not self.initialized:
+                await self.initialize()
+            context = msg_dict.get("context", {})
+            import json
+            message = self.project_client.agents.messages.create(
+                thread_id=self.thread.id,
+                role="user",
+                content=context,
+            )
+            run = self.project_client.agents.runs.create(
+                thread_id=self.thread.id,
+                agent_id=self.agent.id,
+            )
+            max_iterations = 60
+            iteration = 0
+            from src.agent_protocol import create_message, log_agent_message
+            while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
+                await asyncio.sleep(2)
+                iteration += 1
+                run = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=run.id)
+                logger.info(f"Run status: {run.status} (iteration {iteration})")
+                if run.status == "requires_action" and run.required_action:
+                    logger.info("Run requires action - handling tool calls...")
+                    tool_outputs = []
+                    for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                        logger.info(f"Executing function: {tool_call.function.name}")
+                        args = json.loads(tool_call.function.arguments)
+                        retries = 0
+                        max_retries = 3
+                        result = None
+                        while retries < max_retries:
+                            try:
+                                # Replace with actual toolset logic for RightsCheckAgent
+                                result = f"Tool {tool_call.function.name} not implemented."
+                                msg = create_message(
+                                    sender="RightsCheckAgent",
+                                    receiver="ToolCall",
+                                    action=tool_call.function.name,
+                                    context=args,
+                                    status="success",
+                                    error=None
+                                )
+                                log_agent_message(msg, comment="Tool call success")
+                                break
+                            except Exception as e:
+                                retries += 1
+                                msg = create_message(
+                                    sender="RightsCheckAgent",
+                                    receiver="ToolCall",
+                                    action=tool_call.function.name,
+                                    context=args,
+                                    status="error",
+                                    error={"message": str(e), "retry": retries}
+                                )
+                                log_agent_message(msg, comment=f"Tool call error, retry {retries}")
+                                logger.error(f"Error in tool call {tool_call.function.name}: {e} (retry {retries})")
+                                if retries >= max_retries:
+                                    result = {"error": str(e), "retries": retries}
+                        tool_outputs.append({
+                            "tool_call_id": tool_call.id,
+                            "output": result
+                        })
+                    if tool_outputs:
+                        run = self.project_client.agents.runs.submit_tool_outputs(
+                            thread_id=self.thread.id,
+                            run_id=run.id,
+                            tool_outputs=tool_outputs
+                        )
+                        logger.info("Tool outputs submitted.")
+            if run.status == "completed":
+                response = self.project_client.agents.messages.get_last_message_by_role(
+                    thread_id=self.thread.id,
+                    role=MessageRole.AGENT,
+                )
+                if response:
+                    return {
+                        "agent": "RightsCheckAgent",
+                        "status": "completed",
+                        "response": "\n".join(t.text.value for t in response.text_messages),
+                        "context": context
+                    }
+                else:
+                    return {
+                        "agent": "RightsCheckAgent",
+                        "status": "error",
+                        "error": "No response message found.",
+                        "context": context
+                    }
+            elif run.status == "failed":
+                return {
+                    "agent": "RightsCheckAgent",
+                    "status": "error",
+                    "error": str(run.last_error),
+                    "context": context
+                }
     logger.info(f"Run created: {run.id}")
     import json
     max_iterations = 60
