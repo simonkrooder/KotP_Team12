@@ -1,15 +1,3 @@
-## 2. Project Structure & Environment
-
-- [ ] Ensure `/src/.env` contains all required Azure credentials and deployment info. See the **Environment Variables** section in `/docs/application.md` for a complete list and descriptions.
-- [ ] Add `.env` to `.gitignore` if not already present
-- [ ] Document all environment variables in `/docs/application.md` under an 'Environment Variables' section
-- [ ] Create a sample `.env.example` file for onboarding, listing all required variables with placeholder values
-- [ ] Best practices:
-    - Never commit real `.env` files or secrets to version control
-    - Use `python-dotenv` to load environment variables in all entrypoints
-    - Reference environment variables in code using `os.getenv()`
-    - Update `.env.example` whenever a new variable is added
-
 **Troubleshooting:**
 - If you encounter schema validation errors, check that your CSV files match the schemas in `/docs/csv_schemas.md`.
 # Agent Setup Checklist
@@ -25,8 +13,20 @@ See `/examples/agent_usage_example.py` for a minimal example of agent instantiat
 
 ---
 
+## 1. Project Structure & Environment
 
-## 1. Install Required Packages
+- [ ] Ensure `/src/.env` contains all required Azure credentials and deployment info. See the **Environment Variables** section in `/docs/application.md` for a complete list and descriptions.
+- [ ] Add `.env` to `.gitignore` if not already present
+- [ ] Document all environment variables in `/docs/application.md` under an 'Environment Variables' section
+- [ ] Create a sample `.env.example` file for onboarding, listing all required variables with placeholder values
+- [ ] Best practices:
+    - Never commit real `.env` files or secrets to version control
+    - Use `python-dotenv` to load environment variables in all entrypoints
+    - Reference environment variables in code using `os.getenv()`
+    - Update `.env.example` whenever a new variable is added
+
+
+## 1a. Install Required Packages
 
 - [ ] Install Azure AI Foundry SDKs and dependencies:
     - [ ] `azure-ai-agents`

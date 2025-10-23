@@ -59,5 +59,33 @@ class TestIntegrationWorkflow(unittest.TestCase):
         hr_mut_df = hr_mut_df[hr_mut_df['MutationID'] != self.mutation_id]
         write_csv('hr_mutations', hr_mut_df)
 
+    def test_orchestrator_escalation(self):
+        """Test that the orchestrator escalates after repeated agent errors."""
+        orchestrator = AgentOrchestrator()
+        # Pass invalid context to force agent error
+        context = {"invalid": "data"}
+        # Use a non-existent agent to force error
+        with self.assertRaises(ValueError):
+            orchestrator.route("NonExistentAgent", context)
+
+        # Patch an agent to always return error
+        class FailingAgent:
+            def handle_request(self, context):
+                return {"status": "error", "error": "forced error", "context": context}
+        orchestrator.agents["FailingAgent"] = FailingAgent()
+        result = orchestrator.route("FailingAgent", context, max_retries=2)
+        self.assertEqual(result["status"], "escalated")
+        self.assertIn("Manual intervention", result["escalation"])
+
+    def test_invalid_context(self):
+        """Test agent handling of missing required context fields."""
+        orchestrator = AgentOrchestrator()
+        # Missing required fields for InvestigationAgent
+        context = {}
+        result = orchestrator.route("InvestigationAgent", context)
+        self.assertIn("status", result)
+        # Should not raise, but may return error or escalated status
+        self.assertIn(result["status"], ["completed", "error", "escalated"])
+
 if __name__ == "__main__":
     unittest.main()

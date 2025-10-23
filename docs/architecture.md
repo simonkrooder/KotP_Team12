@@ -65,9 +65,17 @@ class InvestigationAgent:
 ```
 
 This pattern should be used for all agents: local class, Azure model call, no persistent agent registration.
+
 # Agent Implementation Pattern: Local Class, Azure Model Inference
 
-Agents are implemented as local Python classes. Each agent uses the Azure AI SDK to call Azure-hosted models for reasoning and decision-making, but agents are not registered or orchestrated as persistent Azure resources. All orchestration, message passing, and workflow logic is handled locally in Python.
+All agents must be implemented as local Python classes with a `handle_request(context)` method. This method should call an Azure-hosted model for reasoning/decision-making, using the Azure AI SDK and credentials from `.env`. See `src/AdvisoryAgent.py` and `/examples/agent_usage_example.py` for reference.
+
+**Key points:**
+- Agents are not registered or orchestrated as persistent Azure resources. All orchestration, message passing, and workflow logic is handled locally in Python.
+- Use the structure and best practices from `src/old/agent_example.py` as a template for model calls and tool integration.
+- All tool calls and results must be logged for audit (see audit trail documentation).
+- Error, retry, and escalation flows are handled locally in the orchestrator (see `agent_main.py`).
+- The Agent2Agent protocol and canonical message schema are defined in `src/agent_protocol.py`.
 
 This pattern is illustrated in `src/old/agent_example.py` and should be followed for all agent implementations.
 

@@ -1,3 +1,20 @@
+
+# Quickstart & Onboarding
+
+To get started with the Multi-Agent Access Control Demo:
+
+1. **Clone the repository** and review the `/docs/` directory for architecture, approach, and setup.
+2. **Install Python 3.10+** and all dependencies listed in `requirements.txt`.
+3. **Copy `/src/.env.example` to `/src/.env`** and fill in all required environment variables (see below).
+4. **Never commit real `.env` files or secrets to version control.** Always use `.env.example` for onboarding and update it whenever a new variable is added.
+5. **Use `python-dotenv` to load environment variables** in all entrypoints, and reference them in code using `os.getenv()`.
+6. **Ensure all CSV data files are present** in `/data/` and match the documented schema.
+7. **Run the MCV server and main orchestrator** as described below.
+
+For more details on agent implementation, see the "Agent Implementation Pattern" section below and `/docs/architecture.md`.
+
+---
+
 ## Environment Variables
 
 The following environment variables must be set in `/src/.env` for the system to function:
@@ -7,8 +24,9 @@ The following environment variables must be set in `/src/.env` for the system to
 | AGENT_MODEL_DEPLOYMENT_NAME      | Name of the Azure OpenAI deployment for agents                   |
 | PROJECT_ENDPOINT                 | Base URL for the Azure AI Project or MCV server                  |
 | AZURE_SUBSCRIPTION_ID            | Azure subscription ID for resource access                        |
-| AZURE_RESOURCE_GROUP             | Azure resource group name                                        |
+| AZURE_RESOURCE_GROUP_NAME        | Azure resource group name                                        |
 | MCV_SERVER_URL                   | URL for the local MCV server (default: http://localhost:8000)    |
+| AGENT_TEMPERATURE (optional)     | Temperature for agent model calls (float, default: 0.2)          |
 
 **Setup:**
 1. Copy `/src/.env.example` to `/src/.env` and fill in the required values.

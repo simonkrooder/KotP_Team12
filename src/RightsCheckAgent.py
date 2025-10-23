@@ -2,7 +2,7 @@
 See docs/architecture.md and docs/application.md for the canonical agent pattern, Agent2Agent protocol, and MCV server integration.
 This agent follows the local class + Azure model pattern. All orchestration and message passing is local; all reasoning is delegated to the Azure model.
 """
-from azure_client import get_project_client, get_model_deployment
+from src.azure_client import get_project_client, get_model_deployment
 import logging
 
 class RightsCheckAgent:

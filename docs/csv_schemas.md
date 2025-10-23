@@ -1,3 +1,12 @@
+
+## Data Foundation Best Practices
+
+- All CSV files must match the documented schema below. If you add or update columns (e.g., `Reason`, `ManagerID`), update this documentation and the sample data.
+- Use pandas for all data access and manipulation.
+- All changes to the `change_investigation` column in `hr_mutations.csv` must be logged in `audit_trail.csv` for full traceability.
+
+---
+
 ## CSV Schemas: Multi-Agent Access Control Demo
 
 This document defines the schema for each CSV data file used in the project. It includes column names, data types, required fields, and a brief description of each file's purpose.

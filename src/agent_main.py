@@ -1,12 +1,13 @@
+
 import os
 import requests
 from dotenv import load_dotenv
-from InvestigationAgent import InvestigationAgent
-from RightsCheckAgent import RightsCheckAgent
-from RequestForInformationAgent import RequestForInformationAgent
-from AdvisoryAgent import AdvisoryAgent
+from src.InvestigationAgent import InvestigationAgent
+from src.RightsCheckAgent import RightsCheckAgent
+from src.RequestForInformationAgent import RequestForInformationAgent
+from src.AdvisoryAgent import AdvisoryAgent
 import logging
-from agent_protocol import create_message, log_agent_message
+from src.agent_protocol import create_message, log_agent_message
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
