@@ -57,18 +57,19 @@ page = st.sidebar.radio(
 
 if page == "HR Mutation Entry":
     st.header("HR Mutation Entry")
+    st.caption("All fields are required unless marked optional. Please provide accurate information for auditability.")
     users_df = read_csv('users')
     user_options = users_df['UserID'] + " - " + users_df['Name']
     user_map = dict(zip(user_options, users_df['UserID']))
-    changed_by = st.selectbox("Changed By (User)", user_options)
-    changed_for = st.selectbox("Changed For (User)", user_options)
-    change_type = st.selectbox("Change Type", ["Create", "Update", "Terminate"])
-    field_changed = st.text_input("Field Changed (e.g., Salary, JobTitle)")
-    old_value = st.text_input("Old Value (optional)")
-    new_value = st.text_input("New Value")
-    environment = st.selectbox("Environment", users_df['Environment'].unique())
-    reason = st.text_input("Reason for Change")
-    manager_id = st.selectbox("Manager", user_options)
+    changed_by = st.selectbox("Changed By (User)", user_options, help="Select the user making the change.")
+    changed_for = st.selectbox("Changed For (User)", user_options, help="Select the user whose data is being changed.")
+    change_type = st.selectbox("Change Type", ["Create", "Update", "Terminate"], help="Type of change being made.")
+    field_changed = st.text_input("Field Changed (e.g., Salary, JobTitle)", help="Specify the field that is being changed.")
+    old_value = st.text_input("Old Value (optional)", help="Previous value before the change (if applicable).")
+    new_value = st.text_input("New Value", help="New value after the change.")
+    environment = st.selectbox("Environment", users_df['Environment'].unique(), help="System environment (e.g., HRProd, HRTest).")
+    reason = st.text_input("Reason for Change", help="Provide a reason for the change.")
+    manager_id = st.selectbox("Manager", user_options, help="Select the manager responsible for validation.")
     submit = st.button("Submit Mutation")
     if submit:
         try:
@@ -170,6 +171,7 @@ elif page == "Audit Trail":
 
 elif page == "Mocked User/Manager Response":
     st.header("Mocked User/Manager Response")
+    st.caption("Review and respond to pending mutations. Use Approve/Reject for clear status tracking.")
     try:
         hr_mut_df = read_csv('hr_mutations')
         pending_df = hr_mut_df[hr_mut_df['change_investigation'] == 'Pending']
@@ -183,8 +185,8 @@ elif page == "Mocked User/Manager Response":
             )
             selection = st.selectbox("Select a pending mutation to review", pending_df['desc'])
             selected_id = selection.split(':')[0]
-            action = st.radio("Action", ["Approve", "Reject"])
-            comment = st.text_area("Comment (optional)")
+            action = st.radio("Action", ["Approved", "Rejected"], help="Select the outcome for this mutation.")
+            comment = st.text_area("Comment (optional)", help="Add any comments or justification for your decision.")
             if st.button("Submit Response"):
                 idx = hr_mut_df.index[hr_mut_df['MutationID'] == selected_id][0]
                 old_status = hr_mut_df.at[idx, 'change_investigation']
@@ -207,12 +209,13 @@ elif page == "Mocked User/Manager Response":
 
 elif page == "Insights/Dashboard":
     st.header("Insights / Dashboard")
+    st.caption("All status codes are standardized for audit and compliance. For accessibility, use keyboard navigation and screen reader support in Streamlit.")
     try:
         hr_mut_df = read_csv('hr_mutations')
         total_mutations = len(hr_mut_df)
         pending = (hr_mut_df['change_investigation'] == 'Pending').sum()
-        approved = (hr_mut_df['change_investigation'] == 'Approve').sum()
-        rejected = (hr_mut_df['change_investigation'] == 'Reject').sum()
+        approved = (hr_mut_df['change_investigation'] == 'Approved').sum()
+        rejected = (hr_mut_df['change_investigation'] == 'Rejected').sum()
         st.metric("Total Mutations", total_mutations)
         st.metric("Pending Investigations", pending)
         st.metric("Approved", approved)
@@ -225,6 +228,9 @@ elif page == "Insights/Dashboard":
         st.dataframe(hr_mut_df.sort_values('Timestamp', ascending=False).head(10), use_container_width=True)
     except Exception as e:
         st.error(f"Error loading dashboard: {e}")
+# Accessibility Note
+#
+# For future enhancements, consider adding ARIA labels, keyboard navigation tips, and color contrast checks for full accessibility compliance.
 
 elif page == "Manual Trigger/Chat (Optional)":
     st.header("Manual Trigger / Chat (Demo)")

@@ -1,3 +1,8 @@
+# UI Visuals and Screenshots
+
+> Note: For the canonical UI workflow, see the Streamlit app in `src/ui.py`.
+
+Add screenshots or UI mockups here as the UI evolves. Use the text-based wireframes below as a reference for layout and navigation.
 # UI Wireframes for Multi-Agent Access Control System
 
 This file provides text-based wireframes for the main UI pages, designed for implementation in Streamlit (Python). Each section describes the layout, navigation, and key UI elements.

@@ -1,3 +1,38 @@
+# Sequence Diagram: Multi-Agent Workflow
+
+See `docs/visualFlowchart.mmd` for the canonical workflow diagram.
+
+Below is a placeholder for a detailed sequence diagram (to be updated as the system evolves):
+
+```mermaid
+sequenceDiagram
+    participant UI
+    participant InvestigationAgent
+    participant RightsCheckAgent
+    participant RequestForInformationAgent
+    participant AdvisoryAgent
+    participant MCVServer
+    participant Data
+    UI->>InvestigationAgent: New HR mutation
+    InvestigationAgent->>RightsCheckAgent: check_rights (Agent2Agent)
+    RightsCheckAgent->>MCVServer: /api/authorization/check
+    MCVServer->>Data: Query authorisations.csv
+    MCVServer-->>RightsCheckAgent: Result
+    RightsCheckAgent-->>InvestigationAgent: check_rights_result (Agent2Agent)
+    InvestigationAgent->>RequestForInformationAgent: request_clarification (if needed)
+    RequestForInformationAgent->>MCVServer: /api/notify/send
+    MCVServer-->>RequestForInformationAgent: Notification sent
+    RequestForInformationAgent->>MCVServer: /api/data/lookup (e.g., sickLeave.csv)
+    MCVServer-->>RequestForInformationAgent: Data result
+    RequestForInformationAgent-->>InvestigationAgent: clarification_response (Agent2Agent)
+    InvestigationAgent->>AdvisoryAgent: generate_advisory_report
+    AdvisoryAgent->>MCVServer: /api/report/generate
+    MCVServer-->>AdvisoryAgent: Report
+    AdvisoryAgent-->>InvestigationAgent: advisory_report_result
+    InvestigationAgent->>UI: Update status, audit trail
+```
+
+Update this diagram as the workflow or agent interactions change.
 # Example: Minimal Agent Using Azure Model
 
 ```python

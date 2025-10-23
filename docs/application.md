@@ -1,3 +1,26 @@
+## Environment Variables
+
+The following environment variables must be set in `/src/.env` for the system to function:
+
+| Variable                        | Description                                                      |
+|----------------------------------|------------------------------------------------------------------|
+| AGENT_MODEL_DEPLOYMENT_NAME      | Name of the Azure OpenAI deployment for agents                   |
+| PROJECT_ENDPOINT                 | Base URL for the Azure AI Project or MCV server                  |
+| AZURE_SUBSCRIPTION_ID            | Azure subscription ID for resource access                        |
+| AZURE_RESOURCE_GROUP             | Azure resource group name                                        |
+| MCV_SERVER_URL                   | URL for the local MCV server (default: http://localhost:8000)    |
+
+**Setup:**
+1. Copy `/src/.env.example` to `/src/.env` and fill in the required values.
+2. Never commit real `.env` files or secrets to version control.
+3. Update `.env.example` whenever a new variable is added.
+
+**Troubleshooting:**
+- If you encounter schema validation errors when reading or writing CSVs, check that your data files match the schemas in `/docs/csv_schemas.md`.
+If you encounter errors with Azure model calls, verify your `.env` file and Azure resource access.
+If agent tests are not running, ensure your test files and classes are named correctly and use `python -m unittest discover`.
+For agent usage patterns, see `/examples/agent_usage_example.py`.
+For the canonical agent pattern, see `/docs/architecture.md` and `/docs/application.md`.
 # Onboarding: Implementing and Extending Agents
 
 To implement or extend an agent:

@@ -6,6 +6,7 @@ from RightsCheckAgent import RightsCheckAgent
 from RequestForInformationAgent import RequestForInformationAgent
 from AdvisoryAgent import AdvisoryAgent
 import logging
+from agent_protocol import create_message, log_agent_message
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -44,14 +45,70 @@ class AgentOrchestrator:
             "AdvisoryAgent": AdvisoryAgent(),
         }
 
-    def route(self, agent_name, context):
+    def route(self, agent_name, context, max_retries=3, sender="Orchestrator", action="handle_request"):
         """
-        Route context to the specified agent and return the result dict.
+        Route context to the specified agent using Agent2Agent protocol.
+        Retries on error, escalates after max_retries.
+        Logs all messages and responses.
         """
         agent = self.agents.get(agent_name)
         if not agent:
             raise ValueError(f"Unknown agent: {agent_name}")
-        return agent.handle_request(context)
+        attempt = 0
+        last_result = None
+        correlation_id = None
+        while attempt < max_retries:
+            # Create and log Agent2Agent protocol message
+            msg = create_message(
+                sender=sender,
+                receiver=agent_name,
+                action=action,
+                context=context,
+                status="pending" if attempt == 0 else "retry",
+                correlation_id=correlation_id
+            )
+            log_agent_message(msg)
+            correlation_id = msg.correlation_id
+            # Call agent
+            result = agent.handle_request(context)
+            # Log response as Agent2Agent message
+            resp_msg = create_message(
+                sender=agent_name,
+                receiver=sender,
+                action=f"{action}_result",
+                context=result.get("context", context),
+                status=result.get("status", "unknown"),
+                correlation_id=correlation_id,
+                error={"error": result.get("error")} if result.get("status") == "error" else None
+            )
+            log_agent_message(resp_msg)
+            last_result = result
+            if result.get("status") != "error":
+                return result
+            logging.error(f"{agent_name} error on attempt {attempt+1}: {result.get('error')}")
+            attempt += 1
+        # Escalate after retries exhausted
+        logging.error(f"{agent_name} failed after {max_retries} attempts. Escalating to manual intervention.")
+        escalation = {
+            "agent": agent_name,
+            "status": "escalated",
+            "error": last_result.get("error") if last_result else "Unknown error",
+            "context": context,
+            "escalation": "Manual intervention required after repeated failures.",
+            "correlation_id": correlation_id
+        }
+        # Log escalation as Agent2Agent message
+        esc_msg = create_message(
+            sender=agent_name,
+            receiver=sender,
+            action=f"{action}_escalation",
+            context=context,
+            status="escalated",
+            correlation_id=correlation_id,
+            error={"error": escalation["error"]}
+        )
+        log_agent_message(esc_msg)
+        return escalation
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

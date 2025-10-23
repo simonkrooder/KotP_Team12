@@ -1,3 +1,17 @@
+## 2. Project Structure & Environment
+
+- [ ] Ensure `/src/.env` contains all required Azure credentials and deployment info. See the **Environment Variables** section in `/docs/application.md` for a complete list and descriptions.
+- [ ] Add `.env` to `.gitignore` if not already present
+- [ ] Document all environment variables in `/docs/application.md` under an 'Environment Variables' section
+- [ ] Create a sample `.env.example` file for onboarding, listing all required variables with placeholder values
+- [ ] Best practices:
+    - Never commit real `.env` files or secrets to version control
+    - Use `python-dotenv` to load environment variables in all entrypoints
+    - Reference environment variables in code using `os.getenv()`
+    - Update `.env.example` whenever a new variable is added
+
+**Troubleshooting:**
+- If you encounter schema validation errors, check that your CSV files match the schemas in `/docs/csv_schemas.md`.
 # Agent Setup Checklist
 
 This checklist provides step-by-step instructions for implementing the multi-agent system as described in `architecture.md` and `application.md`.  
