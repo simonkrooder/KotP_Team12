@@ -8,10 +8,10 @@ This section provides a step-by-step guide to test the full workflow and all maj
 - Ensure all CSV files in `/data/` are present and contain sample/mock data.
 - Ensure your `.env` file is set up in `/src/` with the required environment variables (see `/src/.env.example`).
 
-## 2. Start the MCV Server
+## 2. Start the MCP Server
 - Open a terminal in the project root.
-- Start the MCV server:
-  - `python src/mcv_server.py`
+- Start the MCP server:
+	- `python src/mcp_server.py`
 - Confirm the FastAPI server is running (default: http://localhost:8000/docs for API docs).
 
 ## 3. Start the Streamlit UI
@@ -55,4 +55,4 @@ This section provides a step-by-step guide to test the full workflow and all maj
 - Inspect `/data/hr_mutations.csv` for status changes.
 
 ## 8. Stopping the System
-- Stop all running Python processes (UI, MCV server, agent orchestrator) when done.
+- Stop all running Python processes (UI, MCP server, agent orchestrator) when done.

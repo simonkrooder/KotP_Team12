@@ -5,6 +5,8 @@ from data_access import read_csv, write_csv, get_audit_trail_for_mutation
 import uuid
 import os
 import json
+import time
+from pending_actions import get_pending_actions, update_action_response
 
 # Audit logging helper for UI actions
 def log_ui_audit(action, mutation_id=None, old_status=None, new_status=None, agent=None, comment=None):
@@ -171,41 +173,50 @@ elif page == "Audit Trail":
 
 elif page == "Mocked User/Manager Response":
     st.header("Mocked User/Manager Response")
-    st.caption("Review and respond to pending mutations. Use Approve/Reject for clear status tracking.")
-    try:
-        hr_mut_df = read_csv('hr_mutations')
-        pending_df = hr_mut_df[hr_mut_df['change_investigation'] == 'Pending']
-        if pending_df.empty:
-            st.info("No pending mutations for review.")
-        else:
-            pending_df['desc'] = (
-                pending_df['MutationID'] + ': ' +
-                pending_df['ChangedFor'] + ' - ' +
-                pending_df['FieldChanged'] + ' (' + pending_df['ChangeType'] + ')'
-            )
-            selection = st.selectbox("Select a pending mutation to review", pending_df['desc'])
-            selected_id = selection.split(':')[0]
-            action = st.radio("Action", ["Approved", "Rejected"], help="Select the outcome for this mutation.")
-            comment = st.text_area("Comment (optional)", help="Add any comments or justification for your decision.")
-            if st.button("Submit Response"):
-                idx = hr_mut_df.index[hr_mut_df['MutationID'] == selected_id][0]
-                old_status = hr_mut_df.at[idx, 'change_investigation']
-                hr_mut_df.at[idx, 'change_investigation'] = action
-                if comment:
-                    hr_mut_df.at[idx, 'Metadata'] = comment
-                write_csv('hr_mutations', hr_mut_df)
-                # Log audit for status change
-                log_ui_audit(
-                    action="mutation_status_changed",
-                    mutation_id=selected_id,
-                    old_status=old_status,
-                    new_status=action,
-                    agent="UI-Manager",
-                    comment=comment or ""
-                )
-                st.success(f"Mutation {selected_id} marked as {action}.")
-    except Exception as e:
-        st.error(f"Error processing response: {e}")
+    st.caption("Review and respond to pending agent actions in real time. This page polls for new actions every 2 seconds.")
+    # Polling for new pending actions (simulate real-time)
+    if 'last_poll' not in st.session_state:
+        st.session_state['last_poll'] = time.time()
+    if time.time() - st.session_state['last_poll'] > 2:
+        st.session_state['last_poll'] = time.time()
+        st.experimental_rerun()
+
+    # For demo: assume current user is 'manager1' (replace with real user/session logic as needed)
+    current_user_id = st.session_state.get('user_id', 'manager1')
+    actions = get_pending_actions(recipient_id=current_user_id, status='pending')
+    if not actions:
+        st.info("No pending agent actions for you at this time.")
+    else:
+        now = datetime.utcnow()
+        for action in actions:
+            created_at = action.get('created_at')
+            overdue = False
+            if created_at:
+                try:
+                    created_dt = datetime.fromisoformat(created_at)
+                    overdue = (now - created_dt).total_seconds() > 600  # 10 minutes
+                except Exception:
+                    pass
+            st.subheader(f"Action: {action['type']} (ID: {action['action_id']})")
+            st.write(f"**Context:** {action['context']}")
+            if overdue:
+                st.warning("This action has not been responded to for over 10 minutes. Please respond or escalate.")
+            with st.form(f"respond_{action['action_id']}"):
+                response = st.text_area("Your Response", value=action.get('response', ''))
+                submitted = st.form_submit_button("Submit Response")
+                if submitted:
+                    update_action_response(action['action_id'], response)
+                    # Log to audit trail
+                    log_ui_audit(
+                        action=f"pending_action_response_{action['type']}",
+                        mutation_id=action.get('context', ''),
+                        old_status="pending",
+                        new_status="responded",
+                        agent=current_user_id,
+                        comment={"action_id": action['action_id'], "response": response}
+                    )
+                    st.success("Response submitted!")
+                    st.experimental_rerun()
 
 elif page == "Insights/Dashboard":
     st.header("Insights / Dashboard")

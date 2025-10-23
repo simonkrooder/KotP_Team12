@@ -3,7 +3,7 @@ flowchart TD
     A["HR Mutation Entry Page (UI)"] --> B["Add new change to hr_mutations.csv (mock change)"]
     B --> C[Investigation Agent Triggered]
     C --> C1[Set status to Investigation Started & Log]
-    C1 --> D{"Rights Check Agent (via MCV server)"}
+    C1 --> D{"Rights Check Agent (via MCP server)"}
     D -- Authorized --> E[Set status to Approved & Log<br>Process Ends]
     D -- Not Authorized --> F["Request for Information Agent (Clarification Request)"]
     F --> F1[Set status to Clarification Requested & Log]

@@ -1,0 +1,173 @@
+## Real-Time Pending Action Toolcall and UI Pattern
+
+### New Toolcall: Pending Action (CSV-based Shared State)
+
+To support real-time, auditable UI/agent interaction, a new pattern is implemented:
+
+- **Shared State:** All pending agent actions (e.g., notifications, clarifications) are written to a CSV file (`pending_actions.csv`) in the `/data/` directory. Each row includes: `action_id`, `type`, `recipient_id`, `context`, `status`, `created_at`, `response`.
+- **UI Polling:** The Streamlit UI polls this CSV every 2 seconds (using `st.experimental_rerun()` and `time.sleep()`) to check for new actions relevant to the current user/manager.
+- **Real-Time Forms:** For each pending action, the UI displays a form for the user/manager to submit a response. On submission, the response is written to the CSV and the status is updated to `responded`.
+- **Audit Logging:** All actions and responses are logged to `audit_trail.csv` for traceability.
+- **Escalation/Reminders:** If an action remains `pending` for more than 10 minutes, the UI displays a warning and can trigger escalation logic.
+
+#### Example Usage
+
+```python
+# Add a new pending action (agent/toolcall):
+add_pending_action({
+    'action_id': str(uuid.uuid4()),
+    'type': 'send_notification',
+    'recipient_id': 'manager1',
+    'context': 'Clarification needed for mutation X',
+    'status': 'pending',
+    'created_at': datetime.utcnow().isoformat(),
+    'response': ''
+})
+
+# UI polling and response (see ui.py):
+actions = get_pending_actions(recipient_id=current_user_id, status='pending')
+for action in actions:
+    # Display form, on submit:
+    update_action_response(action['action_id'], response)
+    log_ui_audit(...)
+```
+
+#### Extensibility
+- To add new real-time interactions, define new action types and update the UI to handle them.
+- Document each new toolcall and UI pattern in this file and in `ui.py`.
+
+# Agent Tool Call Protocol Specification (Azure SDK Pattern)
+
+## Overview
+All agent tool calls (data lookup, authorization, notification, report generation) are implemented as Python async functions and registered with the agent using the Azure SDK. Agents never access data or external systems directly; they interact with the registered tool functions. Every tool call and result is logged for auditability.
+
+**Note:** The "MCP server" is now a local Python orchestration pattern, not a REST API. All orchestration and tool call execution is handled in-process via Python functions and the Azure SDK. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages (not real emails).
+
+
+## Registered Tool Functions
+| Function Name         | Purpose                        | Input Args (required)                | Output Fields                  |
+|----------------------|-------------------------------|--------------------------------------|-------------------------------|
+| check_authorization  | Check user authorization       | user_id, system, access_level        | authorized, evidence, message |
+| lookup_data          | Query data from CSV files      | file, query (dict of filters)        | results, message              |
+| send_notification    | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   |
+| generate_report      | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details |
+
+
+### Example Tool Function and Usage
+```python
+async def check_authorization(user_id: str, system: str, access_level: str) -> dict:
+    # Implement logic to check authorization from CSVs
+    # Return dict: {"authorized": True/False, "evidence": {...}, "message": str}
+    ...
+
+# Register with agent (see agent_example.py):
+from azure.ai.agents.models import AsyncFunctionTool
+toolset = AsyncFunctionTool(functions={check_authorization, ...})
+```
+
+
+## Canonical Agent Tool Call Pattern
+```python
+# Example: RightsCheckAgent using registered tool function
+class RightsCheckAgent:
+    def __init__(self, toolset):
+        self.toolset = toolset
+
+    async def handle_request(self, context):
+        # Call the registered async tool function
+        result = await self.toolset.check_authorization(
+            user_id=context["user_id"],
+            system=context["system"],
+            access_level=context["access_level"]
+        )
+        # Log result to audit trail
+        return {"status": "success", **result}
+```
+
+
+## Audit Logging Schema
+Every tool call and result must be logged with:
+- timestamp
+- agent name
+- function name
+- input arguments
+- output/result
+- status (success/error)
+- correlation_id (if provided)
+
+
+## Error Handling & Retry
+- Orchestrator retries failed tool calls up to 3 times, then escalates.
+- All errors and retries are logged.
+
+
+## Extensibility Guidelines
+- To add a new tool call: define async function, input/output schema, register with agent, document in this file.
+- To add a new agent: implement agent class, use canonical tool call pattern, update documentation.
+
+
+## Testing & Mocking
+- Tool calls can be mocked by replacing registered tool functions with test doubles.
+- Use sample data and error cases to validate agent logic.
+
+
+
+## Real-Time UI Interaction with Agents via Toolcalls
+
+### Overview
+To achieve real-time, interactive workflows between the UI and agents, the Streamlit UI must act as both the initiator and the responder for agent toolcalls. This enables users and managers to interact with agent requests, provide clarifications, and see results or notifications immediately in the UI.
+
+### Implementation Details
+
+#### 1. Toolcall-Driven UI Updates
+- Each agent toolcall (e.g., `send_notification`, `request_clarification`, `request_manager_validation`) triggers a UI state change.
+- When an agent needs user/manager input, it issues a toolcall (e.g., `send_notification`). Instead of sending an email, the backend logs the request and updates a shared state (e.g., a CSV, database, or in-memory store).
+- The Streamlit UI polls or listens for new pending actions (e.g., notifications, clarifications) relevant to the current user/manager.
+- When a pending action is detected, the UI displays a form or notification, allowing the user/manager to respond in real time.
+- Upon submission, the UI writes the response back to the shared state, which the agent then consumes to continue its workflow.
+
+#### 2. Streamlit UI Integration Pattern
+- Use Streamlit session state or a lightweight backend (e.g., CSV, SQLite, or in-memory dict) to track pending agent actions and responses.
+- For each workflow step:
+    - The agent logs a toolcall (e.g., `send_notification`) with a unique correlation ID and context.
+    - The UI displays a notification or form for the relevant user/manager, keyed by correlation ID.
+    - The user/manager submits a response, which is logged and made available to the agent.
+    - The agent polls for or is notified of the response and continues processing.
+- All actions and responses are logged to the audit trail for traceability.
+
+#### 3. Real-Time Feedback and State Synchronization
+- Use Streamlit's `st.experimental_rerun()` or websocket-based callbacks (if using a backend) to refresh the UI when new agent actions or responses are available.
+- Optionally, implement a lightweight polling mechanism (e.g., every few seconds) to check for new pending actions or updates.
+- For multi-user scenarios, use user authentication or session IDs to filter and display only relevant actions/notifications.
+
+#### 4. Example: Mocked Notification Workflow
+1. Agent issues a `send_notification` toolcall with context (e.g., clarification needed for mutation X).
+2. Backend logs the notification as pending in a shared store (e.g., `pending_notifications.csv`).
+3. Streamlit UI detects the pending notification for the current user and displays a form.
+4. User submits a response; UI writes it to `pending_notifications.csv` or a response store.
+5. Agent reads the response, logs the result, and continues the workflow.
+6. All steps are logged in `audit_trail.csv`.
+
+#### 5. Error Handling and Retries
+- If a user/manager does not respond within a timeout, the agent can escalate or retry, and the UI can display reminders.
+- All errors, retries, and escalations are surfaced in the UI and logged.
+
+#### 6. Extensibility
+- To add new real-time interactions, define new toolcalls and corresponding UI forms/pages.
+- Document each new interaction in this file and update the UI accordingly.
+
+#### 7. References
+- See `flow.md` for the canonical workflow.
+- See `ui.py` for Streamlit implementation patterns.
+- See `audit_trail.csv` for logging schema.
+
+---
+**Summary:**
+Real-time UI/agent interaction is achieved by treating toolcalls as triggers for UI state changes, using a shared store for pending actions and responses, and ensuring all steps are logged and surfaced in the UI. This enables demo-friendly, auditable, and interactive workflows without external messaging systems.
+
+---
+**References:**
+- See `architecture.md` for system diagrams and workflow.
+- See `application.md` for user stories and acceptance criteria.
+- See `toolcallactions.md` for implementation checklist.
+- See `TODO.md` for outstanding tasks.

@@ -3,11 +3,11 @@ from fastapi.testclient import TestClient
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-from mcv_server import app
+from mcp_server import app
 
 client = TestClient(app)
 
-class TestMCVServer(unittest.TestCase):
+class TestMCPServer(unittest.TestCase):
     def test_authorization_check(self):
         payload = {"user_id": "u001", "system": "FinanceApp", "access_level": "Admin"}
         response = client.post("/api/authorization/check", json=payload)

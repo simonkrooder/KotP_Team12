@@ -9,7 +9,7 @@ To get started with the Multi-Agent Access Control Demo:
 4. **Never commit real `.env` files or secrets to version control.** Always use `.env.example` for onboarding and update it whenever a new variable is added.
 5. **Use `python-dotenv` to load environment variables** in all entrypoints, and reference them in code using `os.getenv()`.
 6. **Ensure all CSV data files are present** in `/data/` and match the documented schema.
-7. **Run the MCV server and main orchestrator** as described below.
+7. **Run the main orchestrator** as described below. (No separate MCP server is required; all orchestration is local using the Azure SDK. The "MCP server" is now a local Python orchestration pattern, not a REST API. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages.)
 
 For more details on agent implementation, see the "Agent Implementation Pattern" section below and `/docs/architecture.md`.
 
@@ -22,10 +22,10 @@ The following environment variables must be set in `/src/.env` for the system to
 | Variable                        | Description                                                      |
 |----------------------------------|------------------------------------------------------------------|
 | AGENT_MODEL_DEPLOYMENT_NAME      | Name of the Azure OpenAI deployment for agents                   |
-| PROJECT_ENDPOINT                 | Base URL for the Azure AI Project or MCV server                  |
+| PROJECT_ENDPOINT                 | Base URL for the Azure AI Project or MCP server                  |
 | AZURE_SUBSCRIPTION_ID            | Azure subscription ID for resource access                        |
 | AZURE_RESOURCE_GROUP_NAME        | Azure resource group name                                        |
-| MCV_SERVER_URL                   | URL for the local MCV server (default: http://localhost:8000)    |
+| MCP_SERVER_URL                   | (Legacy) URL for the local MCP server (not used in Azure SDK-based pattern)    |
 | AGENT_TEMPERATURE (optional)     | Temperature for agent model calls (float, default: 0.2)          |
 
 **Setup:**
@@ -46,24 +46,113 @@ To implement or extend an agent:
 1. Create a new Python class (e.g., `InvestigationAgent`) in `/src/`.
 2. Implement a `handle_request(context)` method.
 3. In `handle_request`, use the Azure AI SDK (see example in `architecture.md`) to call the appropriate Azure-hosted model, using credentials from `.env`.
-4. Do not register or persist agents in Azure; all orchestration is local.
-5. Use the structure and best practices from `src/old/agent_example.py` as a template for model calls and tool integration.
+4. Register all tool calls (data lookup, authorization, notification, report generation) as Python async functions with the agent using the Azure SDK. Do not use REST endpoints for tool calls.
+5. Do not register or persist agents in Azure; all orchestration is local.
+6. Use the structure and best practices from `src/old/agent_example.py` as a template for model calls and tool integration.
 6. Add or update docstrings to clarify the agent's pattern and responsibilities.
 7. Add tests and example usage for your agent.
 
 This ensures all agents follow the correct pattern and are easy to maintain and extend.
 # Agent Implementation Pattern: Local Class, Azure Model Inference
 
-**Agents in this project are implemented as local Python classes.**
+
+**Agents in this project are implemented as local Python classes, using the Azure SDK for orchestration and tool call registration.**
+
+**Note:** The "MCP server" is now a local Python orchestration pattern, not a REST API. All agent-to-agent and agent-to-tool communication is handled in-process via Python functions and the Azure SDK. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages (not real emails).
+
+This section provides explicit details for implementing each agent, their responsibilities, message flows, and integration requirements. Use this as a blueprint for development and testing.
+
+### Agent Classes and Responsibilities
+
+- **Investigation Agent**
+    - **Role:** Orchestrates the investigation workflow for each HR mutation.
+    - **Responsibilities:**
+        - Receives new mutation events (from UI or system trigger).
+        - Maintains investigation context and status.
+        - Delegates tasks to other agents (Rights Check, Request for Information, Advisory) via Agent2Agent protocol.
+        - Updates the audit trail and mutation status after each step.
+        - Handles error and exception flows (e.g., missing data, unresponsive agents).
+    - **Inputs:** New HR mutation data, current investigation context.
+    - **Outputs:** Updated investigation status, audit log entries, agent-to-agent messages.
+
+- **Rights Check Agent**
+    - **Role:** Validates whether the changer had the correct rights for the mutation.
+    - **Responsibilities:**
+        - Receives context from Investigation Agent.
+    - Calls the MCP server to check authorizations (using user, role, and application data).
+        - Returns result (authorized/unauthorized) and supporting evidence.
+        - Logs all actions and results.
+    - **Inputs:** User ID, mutation details, context.
+    - **Outputs:** Authorization result, audit log entry.
+
+- **Request for Information Agent**
+    - **Role:** Gathers additional information from the changer and/or their manager.
+    - **Responsibilities:**
+        - Receives context and clarification requests from Investigation Agent.
+    - Calls the MCP server to send (mocked) notifications or requests for clarification.
+    - Validates claims (e.g., sick leave, vacation) via MCP server data lookups.
+        - Handles and logs user/manager responses (via UI or mock interface).
+        - Returns findings to Investigation Agent.
+    - **Inputs:** Mutation context, clarification questions.
+    - **Outputs:** User/manager responses, validation results, audit log entries.
+
+- **Advisory Agent**
+    - **Role:** Synthesizes all findings and generates a final advisory report.
+    - **Responsibilities:**
+        - Receives full investigation context and findings from Investigation Agent.
+    - Calls the MCP server to generate/send a report (mocked or real).
+        - Recommends an outcome (accept, reject, escalate/manual intervention).
+        - Logs the advisory action and outcome.
+    - **Inputs:** Investigation context, findings from other agents.
+    - **Outputs:** Advisory report, recommendation, audit log entry.
+
+### Agent2Agent Protocol Implementation
+
+- All agent communication uses structured messages with:
+    - Context (current investigation state, mutation data, prior findings)
+    - Action/request type
+    - Correlation ID (for traceability)
+    - Timestamp
+- Agents must log every received message, action taken, and response sent.
+- All agent-to-agent messages are auditable and stored for traceability.
+
+### MCP Server Integration
+
+- Agents never access data or external systems directly; all tool calls go through the MCP server.
+- The MCP server must expose endpoints for:
+    - Authorization checks
+    - Data lookups (users, roles, sick leave, vacation, etc.)
+    - Sending/receiving (mocked) notifications
+    - Report generation
+- Every tool call and result must be logged by the MCP server for audit.
+
+### Agent Lifecycle and Message Flow
+
+1. **Trigger:** New HR mutation is created (via UI or system event).
+2. **Investigation Agent:** Starts investigation, logs event, and requests rights check.
+3. **Rights Check Agent:** Validates authorization, returns result.
+4. **Investigation Agent:** Updates status. If unauthorized or unclear, requests clarification.
+5. **Request for Information Agent:** Contacts changer/manager, validates claims, returns responses.
+6. **Investigation Agent:** Updates context and status, then requests advisory.
+7. **Advisory Agent:** Generates report and recommendation.
+8. **Investigation Agent:** Finalizes status, logs all actions, and updates audit trail.
+
+### Implementation Notes
 
 - Each agent (e.g., InvestigationAgent, RightsCheckAgent) is a Python class with a `handle_request(context)` method.
 - When handling a request, the agent uses the Azure AI SDK (with credentials from `.env`) to call an Azure-hosted model endpoint for reasoning, decision-making, or text generation.
+- All tool calls (data lookup, authorization, notification, report generation) are implemented as Python async functions and registered with the agent using the Azure SDK. There is no REST MCP server; all orchestration and tool call execution is local.
 - No persistent agent registration or orchestration is performed in Azure. All agent orchestration, message passing, and workflow logic is handled locally in Python.
-- The code structure follows the pattern in `src/old/agent_example.py`, but with orchestration and message passing handled locally.
+- The code structure follows the pattern in `src/old/agent_example.py`, with orchestration and message passing handled locally.
 - This approach allows for flexible, testable, and auditable agent logic, while leveraging the power of Azure-hosted models for intelligence.
+- Use environment variables for all Azure and deployment configuration (see `.env`).
+- All status changes and agent actions must be logged in `audit_trail.csv` and/or the relevant mutation record.
+- The system must be testable end-to-end with sample data and mock responses.
 
 **Summary:**
 > Agents are local Python classes that use Azure-hosted models for inference. All orchestration and workflow logic is local. No persistent agent registration in Azure.
+
+See `flow.md` for the canonical workflow and UI/agent integration pattern.
 
 # Application Documentation
 
@@ -142,7 +231,7 @@ To prevent documentation from falling behind the codebase:
 
 This ensures that all contributors and the AI coding assistant have access to the latest information.
 
-To ensure code quality and reduce defects in critical modules (such as the Agent2Agent protocol and MCV server):
+To ensure code quality and reduce defects in critical modules (such as the Agent2Agent protocol and MCP server):
 - All changes to these modules must undergo code review by at least one other contributor (AI or human).
 - Pair programming is encouraged for complex or high-impact features.
 - Use pull requests for all major changes, and require approval before merging.
@@ -168,7 +257,10 @@ This process ensures transparency, accountability, and continuous momentum throu
 - **Python 3.12**: Chosen for its strong ecosystem, rapid prototyping capabilities, and compatibility with AI/ML and data tools.
 - **Streamlit**: Enables fast, interactive UI development in Python, ideal for demos and internal tools.
 - **Azure AI Agents SDK**: Used for agent orchestration, leveraging cloud-based AI and secure integration with Azure resources.
-- **FastAPI (MCV Server)**: Provides a modern, async API layer for agent tool calls and integrations.
+
+**Azure AI SDK Tool Call Registration**: All agent tool calls (authorization, data lookup, notification, report generation) are implemented as Python async functions and registered with the agent using the Azure SDK. There is no REST MCP server; all orchestration and tool call execution is local and auditable. This ensures every agent action is modular, traceable, and compliant.
+
+For the full MCP tool call protocol specification, see [`toolcalls.md`](toolcalls.md).
 - **CSV Data Storage**: Selected for transparency, ease of manipulation, and suitability for prototyping and demos.
 - **Pandas**: Used for robust, efficient CSV data access and manipulation.
 - **python-dotenv**: Simplifies environment variable management for local and cloud deployments.
@@ -189,8 +281,9 @@ This process ensures that all model and technology updates are transparent, just
 
 ---
 
+
 **Purpose:**  
-Automate the detection, investigation, and advisory process for changes in business systems using a multi-agent AI architecture. All tool calls by agents are orchestrated through an MCV (Model-Controller-View) server, which acts as the central point for executing actions and integrating with data and notification services.
+Automate the detection, investigation, and advisory process for changes in business systems using a multi-agent AI architecture. All tool calls by agents are orchestrated as Python async functions registered with the agent using the Azure SDK. There is no REST MCP server; all orchestration, context management, and integration with data and notification services is handled locally in Python. This ensures every agent interaction is modular, auditable, and compliant, providing a unified interface for all tool calls and workflow orchestration.
 
 **Core Value:**  
 - Reduce manual effort in change governance  
@@ -201,10 +294,10 @@ Automate the detection, investigation, and advisory process for changes in busin
 
 **Key Workflow:**  
 1. **Trigger:** A new HR mutation entry triggers the Investigation Agent.
-2. **Rights Check:** The Rights Check Agent verifies if the changer had the correct rights (via MCV server tool call). If authorized, the Investigation Agent sets the `change_investigation` column to 'Approved' in `hr_mutations.csv` for that change.  
-3. **User Clarification:** If not approved, the Request for Information Agent contacts the changer for clarification and validates the response (via MCV server tool calls, e.g., checking sick leave or vacation data).  
-4. **Manager Validation:** The Request for Information Agent contacts the manager to validate the changer’s claim (via MCV server tool call).  
-5. **Advisory:** The Advisory Agent generates a report and recommendation for the Change Controller (via MCV server tool call), with three possible outcomes: (1) accept the change, (2) reject and initiate further investigation, or (3) mark as correct but requiring manual intervention.
+2. **Rights Check:** The Rights Check Agent verifies if the changer had the correct rights (via registered tool call). If authorized, the Investigation Agent sets the `change_investigation` column to 'Approved' in `hr_mutations.csv` for that change.  
+3. **User Clarification:** If not approved, the Request for Information Agent contacts the changer for clarification and validates the response (via registered tool calls, e.g., checking sick leave or vacation data).  
+4. **Manager Validation:** The Request for Information Agent contacts the manager to validate the changer’s claim (via registered tool call).  
+5. **Advisory:** The Advisory Agent generates a report and recommendation for the Change Controller (via registered tool call), with three possible outcomes: (1) accept the change, (2) reject and initiate further investigation, or (3) mark as correct but requiring manual intervention.
 
 ---
 
@@ -242,31 +335,31 @@ This example demonstrates how the multi-agent system processes a new HR mutation
 - Investigation Agent sends a message (via Agent2Agent protocol) to Rights Check Agent:
 	- Context: mutation details, changer ID, application
 	- Correlation ID: auto-generated
-- Rights Check Agent calls MCV server to check if Alice (U123) is authorized for this change.
-- MCV server queries `authorisations.csv` and `role_authorisations.csv`.
+-- Rights Check Agent calls MCP server to check if Alice (U123) is authorized for this change.
+-- MCP server queries `authorisations.csv` and `role_authorisations.csv`.
 - Rights Check Agent returns result:
 	- If authorized: Investigation Agent sets status to `Approved`, logs action, and process ends.
 	- If not authorized: Investigation Agent sets status to `Clarification Requested`, logs action.
 
 #### Step 4: Request for Information Agent (User Clarification)
 - Investigation Agent sends a clarification request to Request for Information Agent.
-- Request for Information Agent calls MCV server to send a (mocked) notification to Alice.
-- Status set to `Awaiting User Response`.
-- Alice responds via UI (mocked response captured by MCV server).
-- Request for Information Agent validates claim (e.g., checks `sickLeave.csv` for Bob).
+-- Request for Information Agent calls MCP server to send a (mocked) notification to Alice.
+-- Status set to `Awaiting User Response`.
+-- Alice responds via UI (mocked response captured by MCP server).
+-- Request for Information Agent validates claim (e.g., checks `sickLeave.csv` for Bob).
 - If claim invalid: status set to `Rejected - Invalid User Claim`, logs action, process ends.
 - If claim valid: status set to `Manager Verification Requested`, logs action.
 
 #### Step 5: Request for Information Agent (Manager Verification)
 - Request for Information Agent sends a verification request to Bob's manager (e.g., ManagerID: M789).
-- MCV server sends (mocked) notification to manager.
+- MCP server sends (mocked) notification to manager.
 - Status set to `Awaiting Manager Response`.
 - Manager responds via UI (mocked response captured).
 - Status set to `Manager Responded`, logs action.
 
 #### Step 6: Advisory Agent
 - Investigation Agent sends full context and findings to Advisory Agent.
-- Advisory Agent calls MCV server to generate a report and recommendation.
+- Advisory Agent calls MCP server to generate a report and recommendation.
 - Report includes summary, findings, and recommended outcome (e.g., `Accepted`).
 - Status set to `Advisory Report Generated`, logs action.
 
@@ -287,12 +380,12 @@ This example demonstrates how the multi-agent system processes a new HR mutation
 	- The status is updated to `Investigation Started`.
 
 3. **Rights Check:**
-	- The Rights Check Agent (via MCV server) checks if the changer has the correct rights for the change.
+    -- The Rights Check Agent (via MCP server) checks if the changer has the correct rights for the change.
 	- If authorized, the Investigation Agent sets the status to `Approved` and the process ends.
 	- If not authorized, the status is set to `Clarification Requested`.
 
 4. **User Clarification:**
-	- The Request for Information Agent (via MCV server) sends a clarification request to the changer.
+    -- The Request for Information Agent (via MCP server) sends a clarification request to the changer.
 	- The status is set to `Awaiting User Response`.
 	- When the user responds, the status is set to `User Responded`.
 	- The agent validates the claim using available data (e.g., sick leave, vacation).
@@ -300,12 +393,12 @@ This example demonstrates how the multi-agent system processes a new HR mutation
 	- If the claim is valid, the status is set to `Manager Verification Requested`.
 
 5. **Manager Verification:**
-	- The Request for Information Agent (via MCV server) sends a verification request to the manager.
+    -- The Request for Information Agent (via MCP server) sends a verification request to the manager.
 	- The status is set to `Awaiting Manager Response`.
 	- When the manager responds, the status is set to `Manager Responded`.
 
 6. **Advisory Report:**
-	- The Advisory Agent (via MCV server) generates a report for the Change Controller, summarizing all findings.
+    -- The Advisory Agent (via MCP server) generates a report for the Change Controller, summarizing all findings.
 	- The status is set to `Advisory Report Generated`.
 	- The report includes a recommendation with one of three outcomes:
 	  - `Accepted`: The change is accepted.
@@ -327,8 +420,8 @@ This flow ensures that every change is auditable, all decisions are explainable,
 - **As an Investigation Agent:**  
 	I orchestrate the investigation, updating the audit status based on results from other agents via Agent2Agent protocol, so I can track context and insights.
 
-- **As a Rights Check Agent:**  
-	I check user rights for a particular application using an MCV tool call, and report findings to the Investigation Agent.
+-- **As a Rights Check Agent:**  
+    I check user rights for a particular application using an MCP tool call, and report findings to the Investigation Agent.
 
 - **As a Request for Information Agent:**  
 	I contact the changer for clarification, validate their response, and report back to the Investigation Agent.
@@ -408,81 +501,6 @@ The following status codes are used to track the investigation state for each ch
 
 ---
 
-## Actionable TODOs
-
----
-
-## Front-End/UI Requirements
-
-To support the agentic workflow and ensure the system is auditable, demo-ready, and testable, the application must provide a user interface with the following pages and features:
-
-### 1. HR Mutation Entry Page
-- Allows users to create a new HR mutation (with dropdowns for user, application, and reason fields).
-- Submitting a new entry triggers the Investigation Agent and starts the workflow.
-
-### 2. HR Mutations Table
-- Displays all HR mutations with their current status (`change_investigation` column).
-- Supports filtering and sorting by status, user, date, etc.
-- Allows selection of a mutation to view its audit trail.
-
-### 3. Audit Trail Page
-- For a selected change, shows the full audit trail: all agent actions, status changes, and timestamps.
-- Enables step-by-step tracking of the investigation process for each change.
-
-### 4. Mocked User/Manager Response Page
-- When the system is awaiting a response from a user or manager (e.g., status is `Awaiting User Response` or `Awaiting Manager Response`), the UI presents a form or button for a human to provide a mock response.
-- This simulates email/notification interactions and allows the workflow to proceed without real email integration.
-- All such interactions are logged in the audit trail for traceability.
-
-### 5. Insights/Dashboard Page (Recommended)
-- Shows metrics such as the number of changes in each status, average investigation time, and anomalies.
-- Useful for compliance officers and for demoing system capabilities.
-
-### 6. (Optional) Manual Trigger/Chat Page
-- Allows manual triggering of agents or direct interaction with the system for testing and debugging.
-
-#### Mocking Email/Notification Interactions
-- All email or notification actions by agents are mocked: when an agent requests clarification or validation, the UI displays the request and allows a human to provide a response directly in the interface.
-- No real email integration is required; all communication is handled via the UI and logged for auditability.
-
-This UI design ensures the system is fully testable, auditable, and suitable for demonstration, while supporting all user stories and workflow requirements described above.
-
-### Data & Foundation
-- [x] Verify and standardize the structure/content of all CSV files (`authorisations.csv`, `hr_mutations.csv`, `role_authorisations.csv`, `roles.csv`, `users.csv`, `sickLeave.csv`, `vacation.csv`). (Complete)
-- [x] Add or update columns as needed (e.g., `Reason`, `ManagerID` in `hr_mutations.csv` and `users.csv`). (Complete)
-- [x] Review if the available data in all files is sufficient to answer all agent questions (e.g., can we always check sick leave, vacation, etc. for claims?). (Complete)
-
-> **Note:** All environment, onboarding, and data foundation steps are now complete and production-ready. CSVs are standardized, all required columns and sample data are present, and onboarding documentation is up to date.
-
-### Multi-Agent System
-- [ ] Implement the Investigation Agent to orchestrate the flow and update audit status.
-	- [ ] When a change is approved, update the `change_investigation` column in `hr_mutations.csv` to 'Approved'.
-- [ ] Implement the Rights Check Agent to validate user rights for changes (using MCV server for tool calls).
-- [ ] Implement the Request for Information Agent to:
-	- [ ] Contact the changer for clarification and validate their response (e.g., with sick leave or vacation data, using MCV server for tool calls).
-	- [ ] Contact the manager for validation of the changer’s claim (using MCV server for tool calls).
-- [ ] Implement the Advisory Agent to generate and send a detailed report to the Change Controller (using MCV server for tool calls), with three possible outcomes:
-	- [ ] Accept the change (authorized)
-	- [ ] Reject and initiate further investigation
-	- [ ] Mark as correct but requiring manual intervention
-- [ ] Implement Agent2Agent protocol for communication and context passing between agents.
-- [ ] Create the MCV server to orchestrate and execute all tool calls for agents.
-
-### User Interaction & Mocking
-- [ ] Design and implement the HR mutation entry page (with dropdowns for users, applications, and reason field).
-- [ ] Design and implement a chat/trigger page for interacting with and triggering the system.
-- [ ] Mock all email/notification interactions (simulate as logs or UI notifications).
-- [ ] Allow manual/mock responses for user and manager in the UI for testing.
-
-### Audit & Insights
-- [ ] Implement audit trail logging for all agent actions and every status change in the investigation process.
-- [ ] Design and implement an insights page to display investigation status, metrics, anomalies, and audit trails.
-
-### Testing & Validation
-- [ ] Mock all system interactions for end-to-end testing.
-- [ ] Validate the system workflow with sample data and edge cases.
-
----
 
 ## Technology Stack & Integration Details
 
@@ -495,7 +513,7 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 - **Other Libraries:** pandas (data access), logging
 
 ### Integration Points
-- All agent actions and tool calls are routed through the MCV server.
+- All agent actions and tool calls are routed through the MCP server.
 - The UI interacts with the agent system via API/tool calls (mocked for demo).
 - All notifications and emails are simulated in the UI for traceability.
 
@@ -509,8 +527,8 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 2. **Set up environment variables:**
     - Copy `/src/.env.example` to `/src/.env` and fill in required values.
 3. **Ensure all CSV data files are present** in `/data/`.
-4. **Start the MCV server:**
-    - `python src/mcv_server.py`
+4. **Start the MCP server:**
+    - `python src/mcp_server.py`
 5. **Start the main orchestrator:**
     - `python src/agent_main.py`
 6. **Start the Streamlit UI:**
@@ -525,8 +543,8 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 - Ensure all CSV data files are present in `/data/`.
 - Add `.env` to `.gitignore`.
 
-#### 2. Start the MCV Server
-- Run the MCV server (e.g., `python src/mcv_server.py`).
+#### 2. Start the MCP Server
+- Run the MCP server (e.g., `python src/mcp_server.py`).
 - Confirm endpoints are available (see API spec in `architecture.md`).
 
 #### 3. Launch Agents
@@ -549,7 +567,7 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 ## Testing & Validation Strategy
 
 ### Test Plan
-- **Unit Tests:** Test each agent class and MCV server endpoint in isolation.
+- **Unit Tests:** Test each agent class and MCP server endpoint in isolation.
 - **Integration Tests:** Test agent workflows with sample data and mock tool calls.
 - **End-to-End Tests:** Simulate a full HR mutation workflow from entry to advisory report.
 
@@ -560,7 +578,7 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 ### Mocking User/Manager Responses & Tool Calls
 - All notifications and responses are mocked in the UI (no real email integration).
 - Use UI forms/buttons to simulate user/manager responses.
-- Tool calls to the MCV server can be mocked for testing error handling and edge cases.
+- Tool calls to the MCP server can be mocked for testing error handling and edge cases.
 
 ---
 
@@ -664,11 +682,12 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 
 ---
 
+
 ## Audit Logging and Compliance
 
-- Every agent action, UI mutation, and MCV server tool call is logged to `audit_trail.csv`.
+--- Every agent action, UI mutation, and registered tool call is logged to `audit_trail.csv`.
 - The audit trail includes: AuditID, MutationID, Timestamp, OldStatus, NewStatus, Agent, and Comment.
-- Agents do not directly mutate state files; all state changes are orchestrated via the UI or MCV server, which are responsible for logging.
+- Agents do not directly mutate state files; all state changes are orchestrated via the UI or registered tool calls, which are responsible for logging.
 - Log rotation/archiving is implemented for large audit files.
 - The function `get_audit_trail_for_mutation(mutation_id)` allows full traceability for any mutation.
 

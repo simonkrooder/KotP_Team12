@@ -48,7 +48,7 @@ I am orchestrating the investigation by updating the status in the Audit Colum b
 So I can orchestrate the flow and keep track of the context and insights of the Investigation.
 
 As a Rights Check Agent,
-I want to check the user rights for a particular application using an MCV tool call,
+I want to check the user rights for a particular application using an MCP tool call,
 So I can check if a change was done by a user who had the right to do so. I give my findings back to the Investigation Agent.
 
 As an Investigation Agent,

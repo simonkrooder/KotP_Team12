@@ -1,8 +1,107 @@
-# Sequence Diagram: Multi-Agent Workflow
+
+# Agent Tool Call Sequences (Explicit Mapping)
+# Agent Tool Call Details by Agent
+
+
+**Note:** All agent tool calls are performed as Python async functions registered with the agent using the Azure AI SDK. There is no REST MCP server; instead, the MCP server is now a local Python orchestration pattern (not a REST API). All orchestration, message passing, and workflow logic is handled locally in Python, following the pattern in `src/old/agent_example.py`. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages (not real emails).
+
+The following table provides a detailed mapping for each agent, including:
+- The tool calls it makes (with endpoint names)
+- The order/conditions for each call
+- What data is passed to the Azure model for reasoning
+
+
+| Agent                        | Tool Call(s) (Function Name)         | Order/Condition                                                                 | Data Passed to Azure Model for Reasoning |
+|------------------------------|--------------------------------------|---------------------------------------------------------------------------------|-----------------------------------------|
+| InvestigationAgent           | `lookup_data`                        | At investigation start, if additional context/evidence is needed                 | Full investigation context, mutation details, prior findings                   |
+| RightsCheckAgent             | `check_authorization`, `lookup_data` | On rights check request<br>Optionally for supporting evidence                  | User ID, mutation details, system, access level, context                       |
+| RequestForInformationAgent   | `send_notification`, `lookup_data`   | On clarification/validation request<br>To validate claims (e.g., sick leave)    | Mutation context, clarification questions, user/manager info, claim details    |
+| AdvisoryAgent                | `generate_report`, `lookup_data`     | On advisory report request<br>Optionally for additional evidence               | Full investigation context, findings from other agents                         |
+
+**Order/Conditions Explained:**
+- Agents only call endpoints as needed for their responsibilities and workflow step.
+- Data lookup is used for context/evidence gathering; authorization check is for rights validation; notify/send is for clarification/validation; report/generate is for final advisory.
+
+**Data Passed to Azure Model:**
+- Each agent passes the full relevant context for its reasoning step, including mutation details, user/manager info, prior findings, and any evidence gathered from tool calls.
+
+
+See the next section for how user/manager responses are surfaced to RequestForInformationAgent.
+
+---
+
+## How User/Manager Responses Are Surfaced to RequestForInformationAgent
+
+When the `RequestForInformationAgent` sends a clarification or validation request (via a tool call), the system enters a waiting state for a user or manager response. This is handled as follows:
+
+- The UI (see wireframes in `docs/wireframe.md`) displays a notification or form to the relevant user/manager, allowing them to provide a response directly in the application (simulating an email/inbox).
+- The response is captured by the UI and routed back to the backend, where it is logged and made available to the `RequestForInformationAgent` for further processing.
+- All such interactions are logged in the audit trail for traceability.
+- The agent then continues its workflow, validating the response (e.g., by calling the appropriate tool function for sick leave or vacation validation) and returning findings to the orchestrator.
+
+**UI/Backend Flow:**
+1. Agent calls `/api/notify/send` (RequestForInformationAgent → MCP server → UI)
+2. UI displays a response form to the user/manager
+3. User/manager submits response in the UI
+4. Backend logs the response and updates the investigation context
+5. Agent processes the response and continues workflow
+
+See the UI wireframes and audit trail documentation for more details.
+
+---
+
+## UI Wireframes and Documentation Alignment
+
+The UI wireframes and documentation in [`docs/wireframe.md`](wireframe.md) are designed to match the agent tool call flow described above. Key points:
+
+- The HR Mutation Entry Page, Audit Trail Page, and Mocked User/Manager Response Page directly support the agent workflow and tool call sequence.
+- When the system is awaiting a user or manager response (triggered by `/api/notify/send`), the UI presents a form for the relevant party to respond, as described in the wireframes.
+- All agent actions, tool calls, and user/manager responses are logged and surfaced in the UI for full traceability.
+- The UI supports all workflow states and status codes as described in the documentation and sequence diagrams.
+
+**Reference:**
+- See [`docs/wireframe.md`](wireframe.md) for canonical UI layouts and response flows.
+- See the sequence diagram and tool call mapping above for how UI states correspond to agent tool calls and workflow steps.
+This section provides an explicit, step-by-step mapping of tool calls for each agent, as implemented via the MCP server (Model Context Protocol). For the full MCP tool call protocol specification, see [`toolcalls.md`](toolcalls.md). This ensures clarity on agent responsibilities and supports both development and auditability.
+## Agent Tool Call Summary Table
+| Agent                        | Tool Call(s) (Registered Function)           | Sequence/When Used                                 |
+|------------------------------|----------------------------------------------|----------------------------------------------------|
+| InvestigationAgent           | Data Lookup                                  | At investigation start, to gather context          |
+| RightsCheckAgent             | Authorization Check, Data Lookup             | On rights check request                            |
+| RequestForInformationAgent   | Notification, Data Lookup                    | On clarification/validation request                |
+| AdvisoryAgent                | Report Generation, Data Lookup               | On advisory report request                         |
+## Step-by-Step Tool Call Sequences
+### InvestigationAgent
+1. Receives new HR mutation context.
+2. (If needed) Calls `lookup_data` registered tool function to gather additional context or evidence.
+3. Delegates rights check to RightsCheckAgent via Agent2Agent protocol.
+4. Delegates clarification/validation to RequestForInformationAgent as needed.
+5. Delegates report generation to AdvisoryAgent at end of workflow.
+6. Logs all actions and status changes.
+### RightsCheckAgent
+1. Receives context from InvestigationAgent.
+2. Calls `check_authorization` registered tool function to validate user rights.
+3. (Optional) Calls `lookup_data` for supporting evidence.
+4. Returns result and evidence to InvestigationAgent.
+5. Logs all actions and results.
+### RequestForInformationAgent
+1. Receives clarification or validation request from InvestigationAgent.
+2. Calls `send_notification` registered tool function to contact user/manager.
+3. Calls `lookup_data` to validate claims (e.g., sick leave, vacation).
+4. Handles and logs responses.
+5. Returns findings to InvestigationAgent.
+### AdvisoryAgent
+1. Receives full investigation context from InvestigationAgent.
+2. Calls `generate_report` registered tool function to generate advisory report.
+3. (Optional) Calls `lookup_data` for additional evidence.
+4. Returns report and recommendation to InvestigationAgent.
+5. Logs all actions and results.
+
+# Sequence Diagram: Multi-Agent Workflow (Azure SDK Pattern)
 
 See `docs/visualFlowchart.mmd` for the canonical workflow diagram.
 
-Below is a placeholder for a detailed sequence diagram (to be updated as the system evolves):
+Below is a detailed sequence diagram for agent-to-agent message flows, including protocol fields, correlation IDs, timestamps, and error/retry/escalation flows, using the Azure SDK-based orchestration and registered Python async tool functions:
 
 ```mermaid
 sequenceDiagram
@@ -11,25 +110,39 @@ sequenceDiagram
     participant RightsCheckAgent
     participant RequestForInformationAgent
     participant AdvisoryAgent
-    participant MCVServer
     participant Data
+    Note over InvestigationAgent,AdvisoryAgent: All messages use Agent2Agent protocol (sender, receiver, action, context, correlation_id, timestamp, status, error)
+
     UI->>InvestigationAgent: New HR mutation
-    InvestigationAgent->>RightsCheckAgent: check_rights (Agent2Agent)
-    RightsCheckAgent->>MCVServer: /api/authorization/check
-    MCVServer->>Data: Query authorisations.csv
-    MCVServer-->>RightsCheckAgent: Result
-    RightsCheckAgent-->>InvestigationAgent: check_rights_result (Agent2Agent)
-    InvestigationAgent->>RequestForInformationAgent: request_clarification (if needed)
-    RequestForInformationAgent->>MCVServer: /api/notify/send
-    MCVServer-->>RequestForInformationAgent: Notification sent
-    RequestForInformationAgent->>MCVServer: /api/data/lookup (e.g., sickLeave.csv)
-    MCVServer-->>RequestForInformationAgent: Data result
-    RequestForInformationAgent-->>InvestigationAgent: clarification_response (Agent2Agent)
-    InvestigationAgent->>AdvisoryAgent: generate_advisory_report
-    AdvisoryAgent->>MCVServer: /api/report/generate
-    MCVServer-->>AdvisoryAgent: Report
-    AdvisoryAgent-->>InvestigationAgent: advisory_report_result
+    InvestigationAgent->>RightsCheckAgent: check_rights (correlation_id, context)
+    RightsCheckAgent->>lookup_data: call tool function
+    RightsCheckAgent-->>InvestigationAgent: check_rights_result (correlation_id, status, context)
+    alt Not Authorized
+        InvestigationAgent->>RequestForInformationAgent: request_clarification (correlation_id, context)
+        RequestForInformationAgent->>send_notification: call tool function
+        RequestForInformationAgent->>lookup_data: call tool function (e.g., sickLeave.csv)
+        RequestForInformationAgent-->>InvestigationAgent: clarification_response (correlation_id, status, context)
+        alt Claim Valid
+            InvestigationAgent->>RequestForInformationAgent: request_manager_validation (correlation_id, context)
+            RequestForInformationAgent->>send_notification: call tool function (manager)
+            RequestForInformationAgent-->>InvestigationAgent: manager_validation_response (correlation_id, status, context)
+        else Claim Invalid
+            InvestigationAgent->>UI: Update status: Rejected - Invalid User Claim
+        end
+    else Authorized
+        InvestigationAgent->>UI: Update status: Approved
+    end
+    InvestigationAgent->>AdvisoryAgent: generate_advisory_report (correlation_id, context)
+    AdvisoryAgent->>generate_report: call tool function
+    AdvisoryAgent-->>InvestigationAgent: advisory_report_result (correlation_id, status, context)
     InvestigationAgent->>UI: Update status, audit trail
+
+    Note over InvestigationAgent: Error/Retry/Escalation Flows
+    RightsCheckAgent--xInvestigationAgent: check_rights_result (status: error, error details)
+    InvestigationAgent->>InvestigationAgent: Retry up to 3x
+    InvestigationAgent->>AdvisoryAgent: escalate_manual_intervention (if retries fail)
+    AdvisoryAgent-->>InvestigationAgent: advisory_report_result (manual intervention required)
+    InvestigationAgent->>UI: Update status: Manual Intervention Required (surfaced as UI notification)
 ```
 
 Update this diagram as the workflow or agent interactions change.
@@ -64,30 +177,51 @@ class InvestigationAgent:
         return {'result': response.choices[0].text}
 ```
 
-This pattern should be used for all agents: local class, Azure model call, no persistent agent registration.
 
-# Agent Implementation Pattern: Local Class, Azure Model Inference
+This pattern should be used for all agents: local class, Azure model call, no persistent agent registration. All tool calls are registered as Python async functions with the agent using the Azure AI SDK, following the pattern in `src/old/agent_example.py`.
 
-All agents must be implemented as local Python classes with a `handle_request(context)` method. This method should call an Azure-hosted model for reasoning/decision-making, using the Azure AI SDK and credentials from `.env`. See `src/AdvisoryAgent.py` and `/examples/agent_usage_example.py` for reference.
+
+# Agent Implementation Pattern: Local Class, Azure Model Inference, Registered Tool Functions
+
+All agents must be implemented as local Python classes with a `handle_request(context)` method. This method should call an Azure-hosted model for reasoning/decision-making, using the Azure AI SDK and credentials from `.env`. All tool calls (data lookup, authorization, notification, report generation) are implemented as Python async functions and registered with the agent using the Azure SDK. See `src/old/agent_example.py` and `/examples/agent_usage_example.py` for reference.
 
 **Key points:**
 - Agents are not registered or orchestrated as persistent Azure resources. All orchestration, message passing, and workflow logic is handled locally in Python.
 - Use the structure and best practices from `src/old/agent_example.py` as a template for model calls and tool integration.
+- All tool calls are Python async functions registered with the agent (not REST endpoints).
 - All tool calls and results must be logged for audit (see audit trail documentation).
 - Error, retry, and escalation flows are handled locally in the orchestrator (see `agent_main.py`).
 - The Agent2Agent protocol and canonical message schema are defined in `src/agent_protocol.py`.
 
-This pattern is illustrated in `src/old/agent_example.py` and should be followed for all agent implementations.
+This pattern is illustrated in `src/old/agent_example.py` and should be followed for all agent implementations. See `flow.md` for the canonical workflow.
 
 ---
 
+## Error, Retry, and Escalation Flows (Example)
 
-# What’s missing?
+The following diagram illustrates how errors, retries, and escalation to manual intervention are handled in the agent workflow:
 
-- [ ] Add detailed sequence diagrams for agent-to-agent message flows (Mermaid or similar)
-- [ ] Add example error/retry/escalation flows as diagrams
-- [ ] Add more UI screenshots or wireframes (if available)
-- [ ] Add links to code for each module (once repo is public)
+```mermaid
+flowchart TD
+    A[Agent sends request to MCP Server] --> B{MCP Server Response}
+    B -- Success --> C[Continue Workflow]
+    B -- Error --> D[Log Error & Increment Retry Count]
+    D --> E{Retry Count < 3?}
+    E -- Yes --> F[Retry Request]
+    F --> B
+    E -- No --> G[Escalate to AdvisoryAgent for Manual Intervention]
+    G --> H[AdvisoryAgent generates manual intervention report]
+    H --> I[Update status: Manual Intervention Required]
+    I --> J[Log to Audit Trail]
+    C --> J
+    D --> J
+```
+
+**Notes:**
+- All errors are logged with details (status, error code, message, correlation ID).
+- The orchestrator retries failed requests up to 3 times before escalating.
+- Escalation triggers the AdvisoryAgent to generate a manual intervention report, and the status is updated accordingly.
+- All actions and status changes are logged in the audit trail for traceability.
 
 ---
 
@@ -110,7 +244,7 @@ flowchart TD
     F --> G(RightsCheckAgent)
     F --> H(RequestForInformationAgent)
     F --> I(AdvisoryAgent)
-    G --> J(MCV Server)
+    G --> J(MCP Server)
     H --> J
     I --> J
     J --> K[CSV Data Files]
@@ -136,20 +270,20 @@ You can view or edit the diagram directly in Mermaid-compatible editors or VS Co
 
 | Module/File                | Responsibility                                                      |
 |---------------------------|---------------------------------------------------------------------|
-| `src/agent_main.py`       | Orchestrates workflow, agent registration, message routing           |
-| `src/InvestigationAgent.py` | Local agent class; calls Azure model for investigation logic        |
-| `src/RightsCheckAgent.py` | Local agent class; calls Azure model for rights checking             |
-| `src/RequestForInformationAgent.py` | Local agent class; calls Azure model for clarifications, manager validation |
-| `src/AdvisoryAgent.py`    | Local agent class; calls Azure model for advisory/report generation  |
-| `src/agent_protocol.py`   | Defines Agent2Agent protocol, message schema, logging                |
-| `src/mcv_server.py`       | Implements MCV server API, tool call endpoints, audit logging        |
-| `src/ui.py`               | Streamlit UI entrypoint, navigation, page rendering                  |
-| `data/*.csv`              | Data storage: users, roles, authorisations, mutations, audit trail   |
-| `docs/architecture.md`    | Architecture documentation, diagrams, protocol, API docs             |
-| `docs/application.md`     | Application overview, user stories, acceptance criteria, onboarding   |
-| `docs/CONTRIBUTING.md`    | Contributor onboarding, quickstart, workflow                         |
-| `docs/csv_schemas.md`     | Canonical CSV schemas, sample data                                   |
-| `docs/prompts.md`         | Prompt templates, best practices for agentic coding                  |
+| [`src/agent_main.py`](../src/agent_main.py)       | Orchestrates workflow, agent registration, message routing           |
+| [`src/InvestigationAgent.py`](../src/InvestigationAgent.py) | Local agent class; calls Azure model for investigation logic        |
+| [`src/RightsCheckAgent.py`](../src/RightsCheckAgent.py) | Local agent class; calls Azure model for rights checking             |
+| [`src/RequestForInformationAgent.py`](../src/RequestForInformationAgent.py) | Local agent class; calls Azure model for clarifications, manager validation |
+| [`src/AdvisoryAgent.py`](../src/AdvisoryAgent.py)    | Local agent class; calls Azure model for advisory/report generation  |
+| [`src/agent_protocol.py`](../src/agent_protocol.py)   | Defines Agent2Agent protocol, message schema, logging                |
+| [`src/mcp_server.py`](../src/mcp_server.py)       | (Legacy) Implements MCP server API, tool call endpoints, audit logging. Not used in Azure SDK-based pattern.        |
+| [`src/ui.py`](../src/ui.py)               | Streamlit UI entrypoint, navigation, page rendering                  |
+| [`data/*.csv`](../data/)              | Data storage: users, roles, authorisations, mutations, audit trail   |
+| [`docs/architecture.md`](architecture.md)    | Architecture documentation, diagrams, protocol, API docs             |
+| [`docs/application.md`](application.md)     | Application overview, user stories, acceptance criteria, onboarding   |
+| [`docs/CONTRIBUTING.md`](CONTRIBUTING.md)    | Contributor onboarding, quickstart, workflow                         |
+| [`docs/csv_schemas.md`](csv_schemas.md)     | Canonical CSV schemas, sample data                                   |
+| [`docs/prompts.md`](prompts.md)         | Prompt templates, best practices for agentic coding                  |
 
 ---
 ---
@@ -180,11 +314,11 @@ class InvestigationAgent:
 #### RightsCheckAgent
 ```python
 class RightsCheckAgent:
-    def __init__(self, mcv_client):
-        self.mcv_client = mcv_client
+    def __init__(self, mcp_client):
+        self.mcp_client = mcp_client
 
     def handle_request(self, context: dict) -> dict:
-        # Call MCV server to check authorizations
+        # Call MCP server to check authorizations
         # Return result and evidence
         return {"status": "success", "authorized": True, "evidence": {}}
 ```
@@ -192,8 +326,8 @@ class RightsCheckAgent:
 #### RequestForInformationAgent
 ```python
 class RequestForInformationAgent:
-    def __init__(self, mcv_client):
-        self.mcv_client = mcv_client
+    def __init__(self, mcp_client):
+        self.mcp_client = mcp_client
 
     def handle_request(self, context: dict) -> dict:
         # Send notification, validate claims, handle responses
@@ -203,16 +337,15 @@ class RequestForInformationAgent:
 #### AdvisoryAgent
 ```python
 class AdvisoryAgent:
-    def __init__(self, mcv_client):
-        self.mcv_client = mcv_client
+    def __init__(self, mcp_client):
+        self.mcp_client = mcp_client
 
     def handle_request(self, context: dict) -> dict:
         # Generate advisory report and recommendation
         return {"status": "success", "report": {}, "recommendation": "accept"}
 ```
 
-### Usage
-- Each agent is instantiated with required configuration or MCV client.
+- Each agent is instantiated with required configuration or MCP client.
 - The orchestrator (main workflow) calls `handle_request(context)` for each agent as needed.
 - All agent actions and results are logged for auditability.
 # Multi-Agent Access Control Architecture
@@ -231,99 +364,15 @@ The scope includes:
 
 ## Multi-Agent System Overview
 
-The system is composed of specialized agents, each responsible for a distinct part of the change investigation and advisory process. The Investigation Agent orchestrates the flow, calling other agents as needed and updating the audit trail. All tool calls (e.g., data lookups, notifications, validations) are performed via a central MCV (Model-Controller-View) server, which acts as the execution and integration layer for agent actions.
+The system is composed of specialized agents, each responsible for a distinct part of the change investigation and advisory process. The Investigation Agent orchestrates the flow, calling other agents as needed and updating the audit trail. All tool calls (e.g., data lookups, notifications, validations) are performed via a central MCP (Model Context Protocol) server, which acts as the execution and integration layer for agent actions.
 
 ---
 
 ## Agent Implementation Details
 
-This section provides explicit details for implementing each agent, their responsibilities, message flows, and integration requirements. Use this as a blueprint for development and testing.
-
-### Agent Classes and Responsibilities
-
-- **Investigation Agent**
-    - **Role:** Orchestrates the investigation workflow for each HR mutation.
-    - **Responsibilities:**
-        - Receives new mutation events (from UI or system trigger).
-        - Maintains investigation context and status.
-        - Delegates tasks to other agents (Rights Check, Request for Information, Advisory) via Agent2Agent protocol.
-        - Updates the audit trail and mutation status after each step.
-        - Handles error and exception flows (e.g., missing data, unresponsive agents).
-    - **Inputs:** New HR mutation data, current investigation context.
-    - **Outputs:** Updated investigation status, audit log entries, agent-to-agent messages.
-
-- **Rights Check Agent**
-    - **Role:** Validates whether the changer had the correct rights for the mutation.
-    - **Responsibilities:**
-        - Receives context from Investigation Agent.
-        - Calls the MCV server to check authorizations (using user, role, and application data).
-        - Returns result (authorized/unauthorized) and supporting evidence.
-        - Logs all actions and results.
-    - **Inputs:** User ID, mutation details, context.
-    - **Outputs:** Authorization result, audit log entry.
-
-- **Request for Information Agent**
-    - **Role:** Gathers additional information from the changer and/or their manager.
-    - **Responsibilities:**
-        - Receives context and clarification requests from Investigation Agent.
-        - Calls the MCV server to send (mocked) notifications or requests for clarification.
-        - Validates claims (e.g., sick leave, vacation) via MCV server data lookups.
-        - Handles and logs user/manager responses (via UI or mock interface).
-        - Returns findings to Investigation Agent.
-    - **Inputs:** Mutation context, clarification questions.
-    - **Outputs:** User/manager responses, validation results, audit log entries.
-
-- **Advisory Agent**
-    - **Role:** Synthesizes all findings and generates a final advisory report.
-    - **Responsibilities:**
-        - Receives full investigation context and findings from Investigation Agent.
-        - Calls the MCV server to generate/send a report (mocked or real).
-        - Recommends an outcome (accept, reject, escalate/manual intervention).
-        - Logs the advisory action and outcome.
-    - **Inputs:** Investigation context, findings from other agents.
-    - **Outputs:** Advisory report, recommendation, audit log entry.
-
-### Agent2Agent Protocol Implementation
-
-- All agent communication uses structured messages with:
-    - Context (current investigation state, mutation data, prior findings)
-    - Action/request type
-    - Correlation ID (for traceability)
-    - Timestamp
-- Agents must log every received message, action taken, and response sent.
-- All agent-to-agent messages are auditable and stored for traceability.
-
-### MCV Server Integration
-
-- Agents never access data or external systems directly; all tool calls go through the MCV server.
-- The MCV server must expose endpoints for:
-    - Authorization checks
-    - Data lookups (users, roles, sick leave, vacation, etc.)
-    - Sending/receiving (mocked) notifications
-    - Report generation
-- Every tool call and result must be logged by the MCV server for audit.
-
-### Agent Lifecycle and Message Flow
-
-1. **Trigger:** New HR mutation is created (via UI or system event).
-2. **Investigation Agent:** Starts investigation, logs event, and requests rights check.
-3. **Rights Check Agent:** Validates authorization, returns result.
-4. **Investigation Agent:** Updates status. If unauthorized or unclear, requests clarification.
-5. **Request for Information Agent:** Contacts changer/manager, validates claims, returns responses.
-6. **Investigation Agent:** Updates context and status, then requests advisory.
-7. **Advisory Agent:** Generates report and recommendation.
-8. **Investigation Agent:** Finalizes status, logs all actions, and updates audit trail.
-
-### Implementation Notes
-
-- Each agent should be implemented as a class/module with a standard interface (e.g., `handle_request(context)`).
-- Use environment variables for all Azure and deployment configuration (see `.env`).
-- All status changes and agent actions must be logged in `audit_trail.csv` and/or the relevant mutation record.
-- The system must be testable end-to-end with sample data and mock responses.
+Each agent is implemented as a Python class/module with a standard interface (e.g., `handle_request(context)`). All agent-to-agent communication uses the Agent2Agent protocol and message schema (see `src/agent_protocol.py`). All tool calls are routed through the MCP server and are fully logged for auditability. The canonical workflow diagrams are maintained in `docs/visualFlowchart.mmd` and should be updated as the workflow changes. UI wireframes are kept in `docs/wireframe.md` and should be kept up to date with the actual UI. Error/retry/escalation flows and audit logging policy are implemented as described in this document and tracked in `TODO.md`.
 
 ---
-
-The following section continues with the original overview and high-level architecture.
 ### Agents and Responsibilities
 
 - **Investigation Agent**: Orchestrates the investigation, maintains context, updates audit status, and coordinates other agents via Agent2Agent protocol.
@@ -452,35 +501,35 @@ All messages must include correlation_id and timestamp for traceability. All int
 ---
 
 
-## Tool Calls, MCV Server, and Agent Actions
+## Tool Calls, MCP Server, and Agent Actions
 
-Agents do not execute tool calls directly. Instead, all tool calls are routed through the MCV server, which provides a unified interface for:
+Agents do not execute tool calls directly. Instead, all tool calls are routed through the MCP server, which provides a unified interface for:
 - Querying authorization data (for Rights Check Agent)
 - Sending (mocked) notifications or emails (for Request for Information Agent)
 - Validating claims with external data (e.g., sick leave)
 - Generating and sending reports (for Advisory Agent)
 
-The MCV server abstracts and centralizes all integrations, so agents remain modular and the system can be extended or modified without changing agent logic.
+The MCP server abstracts and centralizes all integrations, so agents remain modular and the system can be extended or modified without changing agent logic.
 
 ---
 
 
 
-## MCV Server: Architectural Role & Responsibilities
+## MCP Server: Architectural Role & Responsibilities
 
-The MCV (Model-Controller-View) server is a core component that must be implemented as part of this application. It is responsible for:
+The MCP (Model Context Protocol) server is a core component that must be implemented as part of this application. It is responsible for:
 - Exposing endpoints or interfaces for all tool calls required by agents
 - Handling data access, notifications, and report generation
 - Logging all tool call requests and results for auditability
-- Ensuring agents interact only with the MCV server, not with external systems or data sources directly
+- Ensuring agents interact only with the MCP server, not with external systems or data sources directly
 
-The MCV server enables clear separation of concerns, robust integration, and easy testing/mocking of all agent actions. It is the central integration and execution layer for all agent tool calls.
+The MCP server enables clear separation of concerns, robust integration, and easy testing/mocking of all agent actions. It is the central integration and execution layer for all agent tool calls.
 
-## MCV Server Contract (Quick Reference)
+## MCP Server Contract (Quick Reference)
 
-> **Note:** For full details and example requests/responses, see the "MCV Server API Specification" section below.
+> **Note:** For full details and example requests/responses, see the "MCP Server API Specification" section below.
 
-The MCV (Model-Controller-View) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCV server.
+The MCP (Model Context Protocol) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCP server.
 
 ### API Endpoints Summary Table
 
@@ -493,7 +542,7 @@ The MCV (Model-Controller-View) server is the central integration and execution 
 
 Each endpoint returns a JSON object with the specified output fields. All errors are returned with an appropriate HTTP status code and error message.
 
-For detailed input/output examples and error handling, see the "MCV Server API Specification" section below.
+For detailed input/output examples and error handling, see the "MCP Server API Specification" section below.
 
 ...existing code...
 
@@ -583,6 +632,23 @@ To support the agentic workflow, auditability, and demo/testability, the system 
 - All agent requests for clarification or validation are surfaced in the UI, allowing a human to provide a response directly.
 - No real email integration is required; all communication is handled via the UI and logged for auditability.
 
+
+---
+
+## UI Wireframes and Screenshots
+
+The canonical UI wireframes for all main pages are maintained in [`docs/wireframe.md`](wireframe.md). These text-based wireframes describe the layout, navigation, and key elements for:
+- HR Mutation Entry Page
+- HR Mutations Table
+- Audit Trail Page
+- Mocked User/Manager Response Page
+- Insights/Dashboard Page
+- (Optional) Manual Trigger/Chat Page
+
+Refer to `wireframe.md` for the latest UI structure and layout. As the UI evolves, graphical screenshots or mockups can be added to this section or to `wireframe.md`.
+
+---
+
 This UI design ensures the system is fully testable, auditable, and suitable for demonstration, while supporting all workflow and compliance requirements.
 
 This architecture enables modular, auditable, and extensible change governance using a multi-agent system. Each agent is responsible for a clear part of the workflow, and the Agent2Agent protocol ensures robust communication and traceability. The design supports rapid development, easy testing/mocking, and future expansion.
@@ -594,7 +660,7 @@ This architecture enables modular, auditable, and extensible change governance u
 - **Python as the main language:** Chosen for rapid prototyping, strong AI/ML ecosystem, and compatibility with Azure AI SDKs.
 - **Streamlit for UI:** Enables fast, interactive web UI development in Python, ideal for demos and internal tools.
 - **Azure AI Agents/Projects SDK:** Used for agent orchestration, leveraging cloud-based AI and secure integration with Azure resources.
-- **MCV (Model-Controller-View) Server:** Centralizes all tool calls, data access, and notifications, ensuring modularity, auditability, and easy mocking/testing.
+- **MCP (Model Context Protocol) Server:** Centralizes all tool calls, data access, and notifications, ensuring modularity, auditability, and easy mocking/testing.
 - **CSV files for data:** Chosen for simplicity, transparency, and ease of manipulation in a demo/prototype context.
 - **Agent2Agent protocol:** Ensures modular, auditable, and extensible agent communication.
 - **Mocked notifications:** All email/notification flows are simulated in the UI for demo/testability.
@@ -608,7 +674,7 @@ This architecture enables modular, auditable, and extensible change governance u
 
 - **Sensitive Data Handling:**
     - All access control and HR data is stored in CSV files with strict access permissions.
-    - Agents and the MCV server never access data directly; all access is mediated and logged.
+    - Agents and the MCP server never access data directly; all access is mediated and logged.
     - Audit logs (`audit_trail.csv`) are protected and only accessible to authorized users.
 - **Audit Log Protection:**
     - Every agent action and tool call is logged with timestamp, correlation ID, and status.
@@ -621,7 +687,7 @@ This architecture enables modular, auditable, and extensible change governance u
     - For production, replace CSVs with a secure database and implement real authentication/authorization.
 - The UI is designed for demo/testability: all notifications and user/manager responses are mocked in the UI, not sent via real email or messaging systems.
 - Every agent action and status change is logged in `audit_trail.csv` for full auditability and compliance.
-- The Agent2Agent protocol and MCV server enforce modularity and separation of concerns; agents never access data or other agents directly.
+- The Agent2Agent protocol and MCP server enforce modularity and separation of concerns; agents never access data or other agents directly.
 - The project is structured for easy onboarding and handover, with all setup, environment, and workflow steps documented in `/docs/`.
 - The UI supports filtering, sorting, and step-by-step audit trail navigation for transparency and usability.
 - The UI must support all workflow states and status codes as described in the documentation.
@@ -633,9 +699,9 @@ This architecture enables modular, auditable, and extensible change governance u
 ---
 
 
-## MCV Server API Specification
+## MCP Server API Specification
 
-The MCV (Model-Controller-View) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCV server.
+The MCP (Model Context Protocol) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCP server.
 
 ### API Endpoints Summary
 
@@ -747,7 +813,7 @@ This ensures full traceability and compliance for all agent actions. All tool ca
 
 ## Tool Call Definitions
 
-Agents interact with the MCV server exclusively for all tool calls. Below are the tool calls, their arguments, expected results, error handling, and mapping to agent responsibilities and workflow steps.
+Agents interact with the MCP server exclusively for all tool calls. Below are the tool calls, their arguments, expected results, error handling, and mapping to agent responsibilities and workflow steps.
 
 ### Tool Call List
 
@@ -803,7 +869,7 @@ Agents interact with the MCV server exclusively for all tool calls. Below are th
 | 4    | RequestForInformationAgent | Notification, Data Lookup |
 | 5    | AdvisoryAgent           | Report Generation, Data Lookup |
 
-This mapping ensures every agent action is routed through the MCV server, fully auditable, and aligned with the workflow.
+This mapping ensures every agent action is routed through the MCP server, fully auditable, and aligned with the workflow.
 
 ---
 
@@ -811,8 +877,8 @@ This mapping ensures every agent action is routed through the MCV server, fully 
 
 - **All agent actions** (including every major step and error) are logged to `audit_trail.csv` via the `log_agent_message()` function in `agent_protocol.py`.
 - **All UI actions** that mutate state (e.g., HR mutation creation, status changes) are logged to `audit_trail.csv` via a dedicated logging helper in `ui.py`.
-- **All MCV server tool calls and results** are logged to `audit_trail.csv` via the `log_audit()` function in `mcv_server.py`.
-- **Agents do not directly mutate state files** (such as `hr_mutations.csv`). All state changes are orchestrated via the UI or MCV server, which are responsible for logging.
+- **All MCP server tool calls and results** are logged to `audit_trail.csv` via the `log_audit()` function in `mcp_server.py`.
+- **Agents do not directly mutate state files** (such as `hr_mutations.csv`). All state changes are orchestrated via the UI or MCP server, which are responsible for logging.
 - **No agent method or helper function** should directly write to or mutate data files without a corresponding audit log entry.
 - **Log rotation/archiving** is implemented: if `audit_trail.csv` exceeds 1MB, it is archived and a new file is created.
 - **Audit trail reconstruction**: The function `get_audit_trail_for_mutation(mutation_id)` in `data_access.py` allows full traceability for any mutation.

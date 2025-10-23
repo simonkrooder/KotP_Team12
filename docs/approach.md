@@ -23,7 +23,7 @@ This approach ensures the AI assistant has all the information needed to generat
 
 ## 1. Vision & Scope
 
-We are building a fully auditable, multi-agent access control investigation and advisory system, orchestrated by AI coding agents. The system leverages a modular, agent-based architecture, with all agent actions routed through a central MCV (Model-Controller-View) server. The UI is built in Streamlit, and all data is stored in CSVs for demo/testability.
+We are building a fully auditable, multi-agent access control investigation and advisory system, orchestrated by AI coding agents. The system leverages a modular, agent-based architecture, with all agent actions routed through a central MCP (Model Context Protocol) server. The UI is built in Streamlit, and all data is stored in CSVs for demo/testability.
 
 **Key goals:**
 - End-to-end automation of HR mutation investigation, rights checking, clarification, and advisory.
@@ -37,13 +37,13 @@ We are building a fully auditable, multi-agent access control investigation and 
 
 ### Core Stack
 
-- **Python 3.10+**: Main language for agents, MCV server, and data access.
+-- **Python 3.10+**: Main language for agents, MCP server, and data access.
 - **Streamlit**: For rapid UI prototyping and demo.
 - **pandas**: For CSV data access/manipulation.
 - **python-dotenv**: For environment/config management.
 - **Azure AI SDKs**: For agent orchestration and (optionally) LLM integration.
 - **Custom agent classes**: For Investigation, Rights Check, RFI, Advisory.
-- **MCV server**: Python module exposing tool call endpoints.
+- **MCP server**: (Legacy) Python module exposing tool call endpoints. Now replaced by local Python orchestration.
 
 ### AI Model Choices
 
@@ -61,15 +61,15 @@ We are building a fully auditable, multi-agent access control investigation and 
 ### What to Document
 
 - **Agent interfaces and message schemas** (see `architecture.md`)
-- **MCV server endpoints and tool call contracts**
+- **MCP server endpoints and tool call contracts**
 - **Data model: CSV schemas, required columns, and status codes**
 - **UI wireframes and navigation**
 - **Environment/config requirements**
 - **Audit/logging requirements**
 - **Testing/mocking strategy**
 - **Assumptions**:
-	- All agent-to-agent and agent-to-MCV communication is via structured Python dicts (see Agent2Agent protocol).
-	- No direct DB or external API access from agents; all via MCV.
+	- All agent-to-agent and agent-to-MCP communication is via structured Python dicts (see Agent2Agent protocol).
+	- No direct DB or external API access from agents; all via MCP.
 	- All user/manager responses are mockable via UI for demo.
 	- The system is designed for demo/test, not production scale.
 
@@ -94,13 +94,13 @@ We are building a fully auditable, multi-agent access control investigation and 
 
 - Implement agent classes with `handle_request(context)` interface.
 - Implement Agent2Agent protocol (message schema, logging, correlation IDs).
-- Implement MCV server as the only integration point for tool calls.
+- Implement MCP server as the only integration point for tool calls.
 
 ### 4.3. Orchestration
 
 - Create a main entrypoint (`agent_main.py`) to:
 	- Load config/env
-	- Initialize agents and MCV server
+	- Initialize agents and MCP server
 	- Route messages and handle agent lifecycles
 	- Log all actions/status changes
 
@@ -136,7 +136,7 @@ We are building a fully auditable, multi-agent access control investigation and 
 ## 6. Open Questions & Next Steps
 
 - **Model access**: Ensure GPT-4o/4.1 is available for all code/agent tasks.
-- **MCV server**: Decide if it’s a REST API, Python class, or both for demo.
+- **MCP server**: Decide if it’s a REST API, Python class, or both for demo.
 - **UI polish**: Prioritize demo functionality over production polish.
 - **Security**: Note demo limitations; real-world use would require auth, input validation, etc.
 
