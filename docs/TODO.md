@@ -1,68 +1,105 @@
 
-## 1. Data Foundation
-[ ] Verify and standardize the structure of `users.csv`.
-[ ] Verify and standardize the structure of `hr_mutations.csv`.
-[ ] Verify and standardize the structure of `authorisations.csv`.
-[ ] Verify and standardize the structure of `role_authorisations.csv`.
-[ ] Verify and standardize the structure of `roles.csv`.
-[ ] Verify and standardize the structure of `sickLeave.csv`.
-[ ] Verify and standardize the structure of `vacation.csv`.
-[ ] Verify and standardize the structure of `audit_trail.csv`.
-[ ] Add missing columns (e.g., `Reason`, `ManagerID`) to relevant CSVs.
-[ ] Review if the available data in all CSV files is sufficient to answer all agent questions (e.g., sick leave, vacation, authorizations).
-[ ] Implement a data access function for reading/writing a single CSV file.
-[ ] Implement a data access layer for all CSV files.
+# TODO: Canonical Build Checklist (Aligned with approach.md and actionlist.md)
 
-## 2. Environment & Dependencies
-[ ] Install required Python dependencies (`azure-ai-agents`, `azure-ai-projects`, `azure-identity`, `python-dotenv`, `pandas`, `streamlit`, etc.).
-[ ] Create and populate `/src/.env` with required Azure credentials and deployment info.
-[ ] Add `.env` to `.gitignore` if not already present.
+> **Note:** This checklist is now supplemented by `/docs/actionlist.md`, `/docs/csv_schemas.md`, `/docs/CONTRIBUTING.md`, and `/docs/prompts.md`. Always reference these files for the latest detailed steps, schemas, onboarding, and prompt templates.
 
-## 3. Core Agent Implementation
-[ ] For each new agent, create a dedicated `<AgentName>Agent.py` file in `/src/` (replace `<AgentName>` with the specific agent’s name, e.g., `InvestigationAgent.py`, `RightsCheckAgent.py`, etc.):
-	- [ ] Implement the agent class with a standard interface (e.g., `handle_request(context)`)
-	- [ ] Ensure agent logic is encapsulated in its own module
-	- [ ] Update agent registration and orchestration in `agent_main.py` as new agents are added
-[ ] Create a minimal Investigation Agent class with a stub method.
-[ ] Create a minimal Rights Check Agent class with a stub method.
-[ ] Create a minimal Request for Information Agent class with a stub method.
-[ ] Create a minimal Advisory Agent class with a stub method.
-[ ] Implement the Agent2Agent protocol for message passing (stub).
+
+- [ ] Document and diagram the overall architecture in `/docs/architecture.md`.
+- [ ] Document the Agent2Agent protocol (message schema, error handling, retries, escalation) in `/docs/architecture.md` (see also `/docs/prompts.md`).
+- [ ] Document the MCV server API/interface in `/docs/architecture.md` or `/docs/application.md`.
+- [ ] Add a quickstart guide and contributor onboarding section to `/docs/CONTRIBUTING.md`.
+- [ ] Add a section on model selection rationale and update process to `/docs/application.md`.
+- [ ] Add user stories as acceptance criteria for each UI page (in `/docs/application.md`).
+- [ ] Add architecture diagrams and message flow charts.
+
+## 1b. DevOps & Deployment
+- [ ] Add `requirements.txt` and/or `environment.yml` for reproducibility.
+- [ ] Add local and cloud deployment instructions (e.g., Streamlit sharing, Azure).
+- [ ] (Optional) Add CI/CD setup for linting, testing, and deployment.
+
+## 1. Project Setup & Environment
+- [ ] Install all required Python dependencies (`azure-ai-agents`, `azure-ai-projects`, `azure-identity`, `python-dotenv`, `pandas`, `streamlit`, etc.).
+- [ ] Create and populate `/src/.env` with required Azure credentials and deployment info.
+- [ ] Add `.env` to `.gitignore` if not already present.
+
+- [ ] Verify and standardize the structure of all CSVs (see `/docs/csv_schemas.md`):
+	- [ ] `users.csv`
+	- [ ] `hr_mutations.csv`
+	- [ ] `authorisations.csv`
+	- [ ] `role_authorisations.csv`
+	- [ ] `roles.csv`
+	- [ ] `sickLeave.csv`
+	- [ ] `vacation.csv`
+	- [ ] `audit_trail.csv`
+- [ ] Add missing columns (e.g., `Reason`, `ManagerID`) to relevant CSVs.
+- [ ] Ensure all data needed for agent decisions is present in the CSVs.
+- [ ] Implement a robust data access layer for reading/writing all CSV files.
+- [ ] Validate CSV data against expected schemas (types, required fields) in `/docs/csv_schemas.md`.
+- [ ] Add sample/mock data for demo and testing.
+- [ ] Document CSV schema and sample data in `/docs/csv_schemas.md`.
+
+## 3. Agent & Protocol Implementation
+- [ ] For each agent, create a dedicated `<AgentName>Agent.py` in `/src/`:
+	- [ ] InvestigationAgent
+	- [ ] RightsCheckAgent
+	- [ ] RequestForInformationAgent
+	- [ ] AdvisoryAgent
+- [ ] Implement each agent class with the standard `handle_request(context)` interface.
+- [ ] Encapsulate agent logic in its own module.
+- [ ] Implement the Agent2Agent protocol (message schema, logging, correlation IDs).
+- [ ] Register and orchestrate agents in `agent_main.py`.
+- [ ] Implement error handling, retries, and escalation logic for agent-to-agent messages.
+- [ ] Ensure all agent-to-agent messages are logged and auditable.
 
 ## 4. MCV Server Implementation
-[ ] Implement the MCV server with a stub endpoint for authorization checks.
-[ ] Implement the MCV server with a stub endpoint for data lookups.
-[ ] Implement the MCV server with a stub endpoint for notifications.
-[ ] Implement the MCV server with a stub endpoint for report generation.
+- [ ] Implement the MCV server as the only integration point for tool calls:
+	- [ ] Authorization checks
+	- [ ] Data lookups
+	- [ ] Notifications (mocked)
+	- [ ] Report generation
+- [ ] Ensure all tool calls and results are logged for audit.
+- [ ] Add stubs for future integrations (e.g., email, external APIs).
+- [ ] Document the API/interface for the MCV server.
 
-## 5. UI Features (Streamlit)
-[ ] Create a minimal Streamlit HR mutation entry page.
-[ ] Create a minimal Streamlit HR mutations table page.
-[ ] Create a minimal Streamlit audit trail page.
-[ ] Create a minimal Streamlit mocked user/manager response page.
-[ ] Create a minimal Streamlit insights/dashboard page.
-[ ] Implement a Streamlit Manual Trigger/Chat page for agent testing/debugging.
-[ ] Add navigation (sidebar/top menu) to Streamlit UI for all pages.
-
-## 6. Workflow Orchestration
-[ ] Create `/src/agent_main.py` with environment variable loading.
-[ ] Initialize agent clients and MCV server in `/src/agent_main.py`.
-[ ] Register agents and their toolsets in `/src/agent_main.py`.
-[ ] Implement agent workflow orchestration in `/src/agent_main.py`:
-	- [ ] Route messages between agents using the Agent2Agent protocol
+## 5. Workflow Orchestration
+- [ ] Create `/src/agent_main.py` as the main entrypoint:
+	- [ ] Load environment/config
+	- [ ] Initialize agents and MCV server
+	- [ ] Register agents and their toolsets
+	- [ ] Route messages and handle agent lifecycles
 	- [ ] Submit all tool calls to the MCV server and poll for responses
-	- [ ] Ensure all agent actions and status changes are orchestrated through `agent_main.py`
+	- [ ] Log all actions and status changes
 	- [ ] Orchestrate the end-to-end workflow: mutation entry → investigation → rights check → clarification → manager validation → advisory report → audit logging
-[ ] Implement message routing and logging in `/src/agent_main.py`.
-[ ] Implement logging of agent actions to `audit_trail.csv`.
-[ ] Implement status updates to `hr_mutations.csv`.
 
-## 7. Testing & Validation
-[ ] Test agent initialization with a sample query.
-[ ] Test message flow between agents with sample data.
-[ ] Test tool call execution and agent reasoning (mocked).
-[ ] Validate system workflow with edge cases and sample data.
+## 6. UI Implementation (Streamlit)
+- [ ] Build Streamlit pages as per `wireframe.md`:
+	- [ ] HR Mutation Entry
+	- [ ] Mutations Table
+	- [ ] Audit Trail
+	- [ ] Mocked User/Manager Response
+	- [ ] Insights/Dashboard
+	- [ ] Manual Trigger/Chat (optional, for testing)
+- [ ] Add navigation (sidebar/top menu) to Streamlit UI for all pages.
+- [ ] Implement UI for error states, loading, and edge cases.
+- [ ] Add accessibility and usability checks.
+- [ ] Add user stories as acceptance criteria for each UI page.
 
-## 8. Documentation
-[ ] Document environment variables and setup steps in `/docs/application.md`.
-[ ] Add usage instructions and troubleshooting tips to documentation.
+## 7. Audit & Logging
+- [ ] Log every agent action and status change in `audit_trail.csv`.
+- [ ] Ensure all status changes in `hr_mutations.csv` are logged.
+- [ ] Implement a function to reconstruct the full audit trail for any mutation.
+- [ ] Add log rotation/archiving if audit files grow large.
+
+## 8. Testing & Validation
+- [ ] Test agent initialization and message flow with sample queries and data.
+- [ ] Validate tool call execution and agent reasoning (mocked where needed).
+- [ ] Validate system workflow with edge cases and sample data.
+- [ ] Add unit tests for each agent and the MCV server.
+- [ ] Add integration tests for the end-to-end workflow.
+- [ ] Add test cases for error/retry/escalation flows.
+- [ ] Add test data and scripts for demo scenarios.
+
+- [ ] Document environment variables and setup steps in `/docs/application.md` and `/docs/agentsetup.md`.
+- [ ] Add usage instructions and troubleshooting tips to documentation.
+- [ ] Keep all documentation, code, and UI in sync as the system evolves.
+- [ ] Reference `/docs/CONTRIBUTING.md` for onboarding and `/docs/prompts.md` for prompt templates.

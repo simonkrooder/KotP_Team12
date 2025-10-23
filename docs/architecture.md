@@ -1,4 +1,66 @@
+---
 
+## Agent Class Interfaces
+
+Each agent is implemented as a Python class with a standard interface. The main method is `handle_request(context: dict) -> dict`, which processes the incoming request and returns a result dict.
+
+### Context Object
+- The `context` parameter is a Python dict containing all relevant data for the agent's task (e.g., mutation details, user info, prior findings).
+- The result dict should include status, findings, errors, and any updates for the audit trail.
+
+### Minimal Code Templates
+
+#### InvestigationAgent
+```python
+class InvestigationAgent:
+    def __init__(self, config):
+        self.config = config  # environment/configuration
+
+    def handle_request(self, context: dict) -> dict:
+        # Orchestrate investigation workflow
+        # Call other agents via Agent2Agent protocol
+        # Update audit trail
+        return {"status": "success", "action": "investigation_complete", "details": {}}
+```
+
+#### RightsCheckAgent
+```python
+class RightsCheckAgent:
+    def __init__(self, mcv_client):
+        self.mcv_client = mcv_client
+
+    def handle_request(self, context: dict) -> dict:
+        # Call MCV server to check authorizations
+        # Return result and evidence
+        return {"status": "success", "authorized": True, "evidence": {}}
+```
+
+#### RequestForInformationAgent
+```python
+class RequestForInformationAgent:
+    def __init__(self, mcv_client):
+        self.mcv_client = mcv_client
+
+    def handle_request(self, context: dict) -> dict:
+        # Send notification, validate claims, handle responses
+        return {"status": "success", "response": "clarification received", "details": {}}
+```
+
+#### AdvisoryAgent
+```python
+class AdvisoryAgent:
+    def __init__(self, mcv_client):
+        self.mcv_client = mcv_client
+
+    def handle_request(self, context: dict) -> dict:
+        # Generate advisory report and recommendation
+        return {"status": "success", "report": {}, "recommendation": "accept"}
+```
+
+### Usage
+- Each agent is instantiated with required configuration or MCV client.
+- The orchestrator (main workflow) calls `handle_request(context)` for each agent as needed.
+- All agent actions and results are logged for auditability.
 # Multi-Agent Access Control Architecture
 
 ## Introduction & Scope
@@ -119,6 +181,8 @@ All agent-to-agent communication is handled via the Agent2Agent protocol, ensuri
 
 ---
 
+
+
 ## Agent2Agent Protocol
 
 The Agent2Agent protocol is a structured messaging and context-passing mechanism that allows agents to:
@@ -126,10 +190,110 @@ The Agent2Agent protocol is a structured messaging and context-passing mechanism
 - Pass investigation context, status, and findings
 - Log all interactions for auditability
 
-**Protocol Features:**
-- Each agent exposes a standard interface for receiving requests and returning results
-- Messages include context, action, and correlation IDs for traceability
-- All agent actions and status changes are logged
+This protocol ensures modularity, traceability, and robust agent orchestration. All agent-to-agent messages are Python dicts (or JSON objects) with a formal schema (see below).
+
+## Agent2Agent Protocol Message Schema (Quick Reference)
+
+All agent-to-agent communication uses the following structured message schema for traceability, modularity, and auditability.
+
+| Field          | Type      | Required | Description                                      |
+|--------------- |---------- |----------|--------------------------------------------------|
+| sender         | str       | Yes      | Name of sending agent                            |
+| receiver       | str       | Yes      | Name of receiving agent                          |
+| action         | str       | Yes      | Action/request type (e.g., 'check_rights')       |
+| context        | dict      | Yes      | Investigation context, mutation data, findings    |
+| correlation_id | str       | Yes      | Unique ID for tracing message flow               |
+| timestamp      | str       | Yes      | ISO 8601 timestamp of message                    |
+| status         | str       | Yes      | Message status (e.g., 'pending', 'success', 'error') |
+| error          | dict      | No       | Error details if status is 'error'               |
+
+#### Example Message (Rights Check Request)
+```json
+{
+    "sender": "InvestigationAgent",
+    "receiver": "RightsCheckAgent",
+    "action": "check_rights",
+    "context": {
+        "mutation_id": "1001",
+        "user_id": "u001",
+        "system": "FinanceApp",
+        "access_level": "Admin"
+    },
+    "correlation_id": "corr-abc123",
+    "timestamp": "2025-10-23T09:00:00Z",
+    "status": "pending"
+}
+```
+
+#### Example Message (Rights Check Response)
+```json
+{
+    "sender": "RightsCheckAgent",
+    "receiver": "InvestigationAgent",
+    "action": "check_rights_result",
+    "context": {
+        "authorized": true,
+        "evidence": {"authorisation_id": "A001", "role_id": "R001"},
+        "message": "User u001 is authorized as Admin for FinanceApp."
+    },
+    "correlation_id": "corr-abc123",
+    "timestamp": "2025-10-23T09:00:01Z",
+    "status": "success"
+}
+```
+
+#### Example Message (Error)
+```json
+{
+    "sender": "RightsCheckAgent",
+    "receiver": "InvestigationAgent",
+    "action": "check_rights_result",
+    "context": {},
+    "correlation_id": "corr-abc123",
+    "timestamp": "2025-10-23T09:00:01Z",
+    "status": "error",
+    "error": {
+        "code": 404,
+        "message": "User not found"
+    }
+}
+```
+
+...existing code...
+
+### Error Handling & Retry Flows
+
+- If an agent fails to respond or returns an error, the orchestrator retries the request up to N times (default: 3).
+- After N failures, the orchestrator logs the error, updates the audit trail, and escalates to manual intervention or the Advisory Agent.
+- All errors, retries, and escalations are logged for auditability.
+
+### Example Messages for Each Agent Interaction
+
+**InvestigationAgent → RightsCheckAgent**
+- Action: 'check_rights'
+- Context: mutation details
+
+**RightsCheckAgent → InvestigationAgent**
+- Action: 'check_rights_result'
+- Context: authorization result
+
+**InvestigationAgent → RequestForInformationAgent**
+- Action: 'request_clarification' or 'request_manager_validation'
+- Context: mutation details, user/manager info
+
+**RequestForInformationAgent → InvestigationAgent**
+- Action: 'clarification_response' or 'manager_validation_response'
+- Context: user/manager response, validation result
+
+**InvestigationAgent → AdvisoryAgent**
+- Action: 'generate_advisory_report'
+- Context: full investigation findings
+
+**AdvisoryAgent → InvestigationAgent**
+- Action: 'advisory_report_result'
+- Context: report summary, recommendation
+
+All messages must include correlation_id and timestamp for traceability. All interactions are logged in the audit trail.
 
 ---
 
@@ -146,7 +310,9 @@ The MCV server abstracts and centralizes all integrations, so agents remain modu
 
 ---
 
-## MCV Server Implementation
+
+
+## MCV Server: Architectural Role & Responsibilities
 
 The MCV (Model-Controller-View) server is a core component that must be implemented as part of this application. It is responsible for:
 - Exposing endpoints or interfaces for all tool calls required by agents
@@ -154,7 +320,28 @@ The MCV (Model-Controller-View) server is a core component that must be implemen
 - Logging all tool call requests and results for auditability
 - Ensuring agents interact only with the MCV server, not with external systems or data sources directly
 
-The MCV server enables clear separation of concerns, robust integration, and easy testing/mocking of all agent actions.
+The MCV server enables clear separation of concerns, robust integration, and easy testing/mocking of all agent actions. It is the central integration and execution layer for all agent tool calls.
+
+## MCV Server Contract (Quick Reference)
+
+> **Note:** For full details and example requests/responses, see the "MCV Server API Specification" section below.
+
+The MCV (Model-Controller-View) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCV server.
+
+### API Endpoints Summary Table
+
+| Endpoint                      | Method | Purpose                        | Input Args (required)                | Output Fields                  | Error Codes |
+|-------------------------------|--------|-------------------------------|--------------------------------------|-------------------------------|-------------|
+| /api/authorization/check      | POST   | Check user authorization       | user_id, system, access_level        | authorized, evidence, message | 400,404,500 |
+| /api/data/lookup              | POST   | Query data from CSV files      | file, query (dict of filters)        | results, message              | 400,404,500 |
+| /api/notify/send              | POST   | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   | 400,404,500 |
+| /api/report/generate          | POST   | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details | 400,404,500 |
+
+Each endpoint returns a JSON object with the specified output fields. All errors are returned with an appropriate HTTP status code and error message.
+
+For detailed input/output examples and error handling, see the "MCV Server API Specification" section below.
+
+...existing code...
 
 ---
 
@@ -245,3 +432,221 @@ To support the agentic workflow, auditability, and demo/testability, the system 
 This UI design ensures the system is fully testable, auditable, and suitable for demonstration, while supporting all workflow and compliance requirements.
 
 This architecture enables modular, auditable, and extensible change governance using a multi-agent system. Each agent is responsible for a clear part of the workflow, and the Agent2Agent protocol ensures robust communication and traceability. The design supports rapid development, easy testing/mocking, and future expansion.
+
+---
+
+## Architectural Decisions & Rationale
+
+- **Python as the main language:** Chosen for rapid prototyping, strong AI/ML ecosystem, and compatibility with Azure AI SDKs.
+- **Streamlit for UI:** Enables fast, interactive web UI development in Python, ideal for demos and internal tools.
+- **Azure AI Agents/Projects SDK:** Used for agent orchestration, leveraging cloud-based AI and secure integration with Azure resources.
+- **MCV (Model-Controller-View) Server:** Centralizes all tool calls, data access, and notifications, ensuring modularity, auditability, and easy mocking/testing.
+- **CSV files for data:** Chosen for simplicity, transparency, and ease of manipulation in a demo/prototype context.
+- **Agent2Agent protocol:** Ensures modular, auditable, and extensible agent communication.
+- **Mocked notifications:** All email/notification flows are simulated in the UI for demo/testability.
+
+## Assumptions & Extensibility Guidelines
+
+
+---
+
+## Security & Compliance Considerations
+
+- **Sensitive Data Handling:**
+    - All access control and HR data is stored in CSV files with strict access permissions.
+    - Agents and the MCV server never access data directly; all access is mediated and logged.
+    - Audit logs (`audit_trail.csv`) are protected and only accessible to authorized users.
+- **Audit Log Protection:**
+    - Every agent action and tool call is logged with timestamp, correlation ID, and status.
+    - Audit logs are immutable and regularly backed up.
+    - Access to audit logs is monitored and restricted.
+- **Compliance Requirements:**
+    - The system is designed for full traceability and explainability (auditability).
+    - Data retention and deletion policies must comply with GDPR and other relevant regulations.
+    - All user/manager responses and notifications are mocked for demo/testing; no real personal data is transmitted externally.
+    - For production, replace CSVs with a secure database and implement real authentication/authorization.
+- The UI is designed for demo/testability: all notifications and user/manager responses are mocked in the UI, not sent via real email or messaging systems.
+- Every agent action and status change is logged in `audit_trail.csv` for full auditability and compliance.
+- The Agent2Agent protocol and MCV server enforce modularity and separation of concerns; agents never access data or other agents directly.
+- The project is structured for easy onboarding and handover, with all setup, environment, and workflow steps documented in `/docs/`.
+- The UI supports filtering, sorting, and step-by-step audit trail navigation for transparency and usability.
+- The UI must support all workflow states and status codes as described in the documentation.
+- The data access layer uses pandas for CSV manipulation.
+- The environment is managed with `python-dotenv` and a `.env` file in `/src/`.
+- The main entry point for orchestration is `/src/agent_main.py`.
+- All required packages are listed in `agentsetup.md` and must be installed for the system to function.
+
+---
+
+
+## MCV Server API Specification
+
+The MCV (Model-Controller-View) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCV server.
+
+### API Endpoints Summary
+
+| Endpoint                      | Method | Purpose                        | Input Args (required)                | Output Fields                  | Error Codes |
+|-------------------------------|--------|-------------------------------|--------------------------------------|-------------------------------|-------------|
+| /api/authorization/check      | POST   | Check user authorization       | user_id, system, access_level        | authorized, evidence, message | 400,404,500 |
+| /api/data/lookup              | POST   | Query data from CSV files      | file, query (dict of filters)        | results, message              | 400,404,500 |
+| /api/notify/send              | POST   | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   | 400,404,500 |
+| /api/report/generate          | POST   | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details | 400,404,500 |
+
+#### Endpoint Details
+
+**/api/authorization/check**
+- Input: user_id (str), system (str), access_level (str)
+- Output: authorized (bool), evidence (object), message (str)
+- Errors: 400 (bad input), 404 (not found), 500 (internal)
+
+**/api/data/lookup**
+- Input: file (str), query (dict)
+- Output: results (list of dicts), message (str)
+- Errors: 400, 404, 500
+
+**/api/notify/send**
+- Input: recipient_id (str), subject (str), body (str), context (dict, optional)
+- Output: status (str), message_id (str), message (str)
+- Errors: 400, 404, 500
+
+**/api/report/generate**
+- Input: mutation_id (str), context (dict)
+- Output: report_id (str), summary (str), recommendation (str), details (dict)
+- Errors: 400, 404, 500
+
+#### Example Requests/Responses
+
+See below for example JSON requests and responses for each endpoint:
+
+```json
+// /api/authorization/check
+{
+    "user_id": "u001",
+    "system": "FinanceApp",
+    "access_level": "Admin"
+}
+// Response
+{
+    "authorized": true,
+    "evidence": {"authorisation_id": "A001", "role_id": "R001"},
+    "message": "User u001 is authorized as Admin for FinanceApp."
+}
+```
+
+```json
+// /api/data/lookup
+{
+    "file": "sickLeave.csv",
+    "query": {"UserID": "u001"}
+}
+// Response
+{
+    "results": [{"UserID": "u001", "StartDate": "2025-10-20", "EndDate": "2025-10-22", "Status": "approved"}],
+    "message": "1 record found."
+}
+```
+
+```json
+// /api/notify/send
+{
+    "recipient_id": "u002",
+    "subject": "Clarification Needed",
+    "body": "Please clarify the reason for your recent HR change.",
+    "context": {"mutation_id": "1001"}
+}
+// Response
+{
+    "status": "mocked",
+    "message_id": "msg-12345",
+    "message": "Notification displayed in UI for user u002."
+}
+```
+
+```json
+// /api/report/generate
+{
+    "mutation_id": "1001",
+    "context": {"status": "Manager Responded", "findings": {"rights_check": true, "user_claim_valid": true}}
+}
+// Response
+{
+    "report_id": "rep-1001",
+    "summary": "All checks passed. Change is valid.",
+    "recommendation": "accept",
+    "details": {"manager_response": "confirmed"}
+}
+```
+
+### Audit Logging Policy
+
+Every API call and result is logged to `audit_trail.csv` with:
+- Timestamp
+- Endpoint/method
+- Input arguments
+- Output/result
+- Status (success/error)
+- Correlation ID (if provided)
+
+This ensures full traceability and compliance for all agent actions. All tool calls must be auditable and reconstructable from the audit trail.
+
+---
+
+## Tool Call Definitions
+
+Agents interact with the MCV server exclusively for all tool calls. Below are the tool calls, their arguments, expected results, error handling, and mapping to agent responsibilities and workflow steps.
+
+### Tool Call List
+
+| Tool Call                | Endpoint                  | Agent(s)                | Purpose/Workflow Step                                 |
+|--------------------------|---------------------------|-------------------------|------------------------------------------------------|
+| Authorization Check      | /api/authorization/check  | RightsCheckAgent        | Validate user rights for a mutation                   |
+| Data Lookup              | /api/data/lookup          | All agents              | Query CSV data (users, sick leave, vacation, etc.)    |
+| Notification/Clarification | /api/notify/send        | RequestForInformationAgent | Send (mocked) notification to user/manager           |
+| Report Generation        | /api/report/generate      | AdvisoryAgent           | Generate advisory report for controller               |
+
+### Arguments, Results, Error Handling
+
+#### Authorization Check
+- **Arguments:** user_id (str), system (str), access_level (str)
+- **Result:** authorized (bool), evidence (object), message (str)
+- **Errors:** 400 (bad input), 404 (not found), 500 (internal)
+- **Agent:** RightsCheckAgent
+- **Workflow:** Step 2 (rights validation)
+
+#### Data Lookup
+- **Arguments:** file (str), query (dict)
+- **Result:** results (list of dicts), message (str)
+- **Errors:** 400, 404, 500
+- **Agent:** All agents
+- **Workflow:** Used for context, validation, and evidence gathering
+
+#### Notification/Clarification Request
+- **Arguments:** recipient_id (str), subject (str), body (str), context (dict, optional)
+- **Result:** status (str: "sent" or "mocked"), message_id (str), message (str)
+- **Errors:** 400, 404, 500
+- **Agent:** RequestForInformationAgent
+- **Workflow:** Step 3/4 (clarification, manager validation)
+
+#### Report Generation
+- **Arguments:** mutation_id (str), context (dict)
+- **Result:** report_id (str), summary (str), recommendation (str), details (dict)
+- **Errors:** 400, 404, 500
+- **Agent:** AdvisoryAgent
+- **Workflow:** Step 5 (advisory report)
+
+### Error Handling
+- All errors are returned in the result dict with status 'error' and error details.
+- Agents must log all tool call errors and escalate if needed (e.g., manual intervention).
+- The orchestrator retries failed tool calls up to N times (default: 3), then logs and escalates.
+
+### Mapping to Agent Responsibilities & Workflow Steps
+
+| Step | Agent(s)                | Tool Call(s)                |
+|------|-------------------------|-----------------------------|
+| 1    | InvestigationAgent      | Data Lookup                 |
+| 2    | RightsCheckAgent        | Authorization Check, Data Lookup |
+| 3    | RequestForInformationAgent | Notification, Data Lookup |
+| 4    | RequestForInformationAgent | Notification, Data Lookup |
+| 5    | AdvisoryAgent           | Report Generation, Data Lookup |
+
+This mapping ensures every agent action is routed through the MCV server, fully auditable, and aligned with the workflow.

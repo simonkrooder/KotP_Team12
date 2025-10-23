@@ -1,5 +1,98 @@
 # Application Documentation
 
+## Project Review & Progress Tracking
+## Code Review & Pair Programming Policy
+## Continuous Documentation Updates
+## Sample Data & Test Scenarios
+## End-to-End Demo Flow Prioritization
+## Contributor Guidance: Clarifying Questions & Assumptions
+## Version Control Branching & Merging Policy
+## Acceptance Criteria & User Story Refinement
+## Keeping the AI Coding Assistant Up to Date
+
+To maximize the effectiveness of the AI coding assistant:
+- Regularly update documentation and checklists with new requirements, architecture changes, and lessons learned
+- Summarize major changes and decisions in the changelog or dev diary
+- Ensure the AI assistant is provided with the latest context, including updated `/docs/`, `/src/`, and `/data/` files
+- Review and refresh the assistant’s context window at the start of each major development phase
+
+This practice ensures the assistant remains a valuable, context-aware contributor throughout the project.
+
+Acceptance criteria and user stories will be:
+- Reviewed at the start of each sprint or milestone
+- Updated as requirements evolve or new insights are gained
+- Used as the basis for UI acceptance and demo validation
+- Documented in `/docs/application.md` and referenced in `/docs/TODO.md`
+
+This ensures the project remains aligned with user needs and stakeholder expectations.
+
+To maintain code quality and enable safe collaboration:
+- Use feature branches for all major features, bug fixes, or experiments
+- Name branches descriptively (e.g., `feature/agent2agent-protocol`)
+- Open pull requests for all merges into `master` or main branches
+- Require code review and successful tests before merging
+- Resolve conflicts and document merge decisions in the changelog
+
+This policy ensures a clean, auditable project history and reduces integration risks.
+
+Contributors are encouraged to:
+- Ask clarifying questions early and often, especially when requirements or workflows are unclear
+- Document all assumptions in code comments, pull requests, or the changelog
+- Use the project chat or issue tracker for open questions
+- Review and update assumptions as new information becomes available
+
+This practice reduces misunderstandings and helps maintain project clarity.
+
+The team will prioritize building complete, working end-to-end demo flows before focusing on optimization or refactoring. This approach ensures:
+- Early validation of the full system
+- Rapid feedback on integration points
+- Clear demonstration value for stakeholders
+
+Optimization and refactoring will be scheduled only after the main demo flows are functional and tested.
+
+Sample data is provided in the `/data/` directory:
+- `users.csv`, `hr_mutations.csv`, `authorisations.csv`, `role_authorisations.csv`, `roles.csv`, `sickLeave.csv`, `vacation.csv`, `audit_trail.csv`
+
+Test scenarios should be created early and used to validate agent workflows and UI pages. Example scenarios:
+- HR mutation with valid/invalid rights
+- Sick leave or vacation claim validation
+- Manager approval/denial
+- End-to-end audit trail reconstruction
+
+Developers should:
+- Add new sample data as new features or edge cases are implemented
+- Use these scenarios for manual and automated testing
+- Document new scenarios in this section as the project evolves
+
+This ensures robust validation and demo readiness from the start.
+
+To prevent documentation from falling behind the codebase:
+- Update relevant documentation files with every significant code or workflow change.
+- Assign responsibility for documentation updates as part of each pull request or feature branch.
+- Review documentation as part of code review and before merging.
+- Use clear commit messages to indicate documentation changes.
+- Periodically audit documentation for accuracy and completeness.
+
+This ensures that all contributors and the AI coding assistant have access to the latest information.
+
+To ensure code quality and reduce defects in critical modules (such as the Agent2Agent protocol and MCV server):
+- All changes to these modules must undergo code review by at least one other contributor (AI or human).
+- Pair programming is encouraged for complex or high-impact features.
+- Use pull requests for all major changes, and require approval before merging.
+- Reviewers should check for correctness, clarity, test coverage, and documentation updates.
+- Document review outcomes and decisions in the changelog or dev diary.
+
+This policy helps maintain high standards and shared understanding for the most important parts of the system.
+
+To ensure steady progress and alignment, the team will:
+- Conduct weekly standup meetings (in-person or async) to review the canonical build checklist in `/docs/TODO.md`.
+- Use the checklist to track completed, in-progress, and blocked items.
+- Assign action items and update blockers in a running changelog or dev diary.
+- Encourage async check-ins via project chat or issue tracker for distributed contributors.
+- Review and update the checklist at the start of each sprint or milestone.
+
+This process ensures transparency, accountability, and continuous momentum throughout the project lifecycle.
+
 ## Product Overview
 
 **Purpose:**  
@@ -168,6 +261,34 @@ This flow ensures that every change is auditable, all decisions are explainable,
 
 
 
+
+## Audit Trail & Logging Format
+
+Every agent action and status change must be logged in `audit_trail.csv` for full traceability and compliance. This enables step-by-step reconstruction of the investigation process for each change.
+
+### Required Fields for Each Audit Log Entry
+
+| Field      | Type     | Required | Description                                         |
+|------------|----------|----------|-----------------------------------------------------|
+| AuditID    | string   | Yes      | Unique identifier for each audit log entry          |
+| MutationID | string   | Yes      | Reference to the HR mutation being audited          |
+| Timestamp  | datetime | Yes      | ISO 8601 timestamp of the action                    |
+| OldStatus  | string   | No       | Previous status before the change                   |
+| NewStatus  | string   | Yes      | New status after the change                         |
+| Agent      | string   | Yes      | Name of the agent or process making the change      |
+| Comment    | string   | No       | Additional context or reason for the status change  |
+
+**Example row:**
+1,123,2025-10-22T10:00:00,Pending,Investigation Started,InvestigationAgent,"Triggered by new entry"
+
+### Logging Policy
+- Log every agent action and every status change in the investigation process.
+- Log all tool call requests and results (including errors) with correlation IDs for traceability.
+- Ensure audit logs are immutable and only accessible to authorized users.
+- All audit log entries must be written to `audit_trail.csv` immediately after the action occurs.
+
+---
+
 ## Status Codes and Logging for Audit / change_investigation Column
 
 Every time the status in the `Audit` (or `change_investigation`) column of `hr_mutations.csv` is updated, this change must be logged in the audit trail. This ensures full traceability and allows for step-by-step reconstruction of the investigation process for each change.
@@ -265,3 +386,165 @@ This UI design ensures the system is fully testable, auditable, and suitable for
 ### Testing & Validation
 - [ ] Mock all system interactions for end-to-end testing.
 - [ ] Validate the system workflow with sample data and edge cases.
+
+---
+
+## Technology Stack & Integration Details
+
+- **Programming Language:** Python 3.10+
+- **UI Framework:** Streamlit
+- **AI/Agent Framework:** Azure AI Agents SDK (`azure-ai-agents`, `azure-ai-projects`)
+- **Authentication:** Azure Identity (`azure-identity`)
+- **Data Storage:** CSV files in `/data/`
+- **Environment Management:** python-dotenv, `.env` file in `/src/`
+- **Other Libraries:** pandas (data access), logging
+
+### Integration Points
+- All agent actions and tool calls are routed through the MCV server.
+- The UI interacts with the agent system via API/tool calls (mocked for demo).
+- All notifications and emails are simulated in the UI for traceability.
+
+
+## Deployment & Run Instructions
+
+### 1. Environment Setup
+- Install Python 3.10+ and required packages (see `agentsetup.md`).
+- Create and populate `/src/.env` with Azure credentials and deployment info.
+- Ensure all CSV data files are present in `/data/`.
+- Add `.env` to `.gitignore`.
+
+### 2. Start the MCV Server
+- Run the MCV server (e.g., `python src/mcv_server.py`).
+- Confirm endpoints are available (see API spec in `architecture.md`).
+
+### 3. Launch Agents
+- Start the main orchestrator: `python src/agent_main.py`.
+- Agents will be initialized and registered automatically.
+
+### 4. Start the Streamlit UI
+- Run: `streamlit run src/ui.py` (or the relevant UI entrypoint).
+- Access the UI in your browser (default: `localhost:8501`).
+
+### 5. Troubleshooting Tips
+- If endpoints are not available, check server logs and port configuration.
+- If agents fail to initialize, verify `.env` and data files.
+- For UI issues, ensure Streamlit is installed and all dependencies are met.
+- For data errors, check CSV file formats and required columns.
+
+---
+
+## Testing & Validation Strategy
+
+### Test Plan
+- **Unit Tests:** Test each agent class and MCV server endpoint in isolation.
+- **Integration Tests:** Test agent workflows with sample data and mock tool calls.
+- **End-to-End Tests:** Simulate a full HR mutation workflow from entry to advisory report.
+
+### Sample Test Data & Expected Outcomes
+- Use provided sample rows in documentation for each CSV file.
+- Validate status transitions and audit trail logging for each workflow step.
+
+### Mocking User/Manager Responses & Tool Calls
+- All notifications and responses are mocked in the UI (no real email integration).
+- Use UI forms/buttons to simulate user/manager responses.
+- Tool calls to the MCV server can be mocked for testing error handling and edge cases.
+
+---
+
+## Data Model & CSV Schemas
+
+### authorisations.csv
+- **Purpose:** Tracks user-system authorizations for access control.
+- **Columns:**
+    - AuthorisationID (str, required, unique)
+    - UserID (str, required, FK to users.csv)
+    - RoleID (str, required, FK to roles.csv)
+    - System (str, required)
+    - AccessLevel (str, required: Admin/User/Viewer)
+    - GrantedBy (str, required, FK to users.csv)
+    - GrantedOn (date, required, YYYY-MM-DD)
+    - ExpiresOn (date, optional, YYYY-MM-DD or empty)
+    - Status (str, required: Active/Revoked)
+- **Sample row:**
+    - A001,u001,R001,FinanceApp,Admin,grace,2020-01-15,,Active
+
+### hr_mutations.csv
+- **Purpose:** Audit log of all HR data changes and mutations.
+- **Columns:**
+    - MutationID (str/int, required, unique)
+    - Timestamp (datetime, required, ISO 8601)
+    - ChangedBy (str, required, FK to users.csv)
+    - ChangedFor (str, required, FK to users.csv)
+    - ChangeType (str, required: Create/Update/Terminate)
+    - FieldChanged (str, required)
+    - OldValue (str, optional)
+    - NewValue (str, required)
+    - Environment (str, required)
+    - Metadata (str/JSON, optional)
+    - change_investigation (str, required, status code)
+    - Reason (str, required)
+    - ManagerID (str, required, FK to users.csv)
+- **Sample row:**
+    - 1001,2025-10-23T09:00:00Z,u001,u002,Update,Salary,50000,52000,HRProd,"{}",Pending,Annual raise,heidi
+
+### role_authorisations.csv
+- **Purpose:** Maps roles to system access levels.
+- **Columns:**
+    - RoleID (str, required, FK to roles.csv)
+    - System (str, required)
+    - AccessLevel (str, required)
+- **Sample row:**
+    - R001,FinanceApp,Admin
+
+### roles.csv
+- **Purpose:** Master data for job roles and their default system access.
+- **Columns:**
+    - RoleID (str, required, unique)
+    - RoleName (str, required)
+    - Department (str, required)
+    - Description (str, required)
+    - DefaultAuthorisations (str, required, e.g. System:AccessLevel)
+- **Sample row:**
+    - R001,Finance Admin,Finance,Full admin rights to FinanceApp,"FinanceApp:Admin"
+
+### users.csv
+- **Purpose:** Master employee data for all users.
+- **Columns:**
+    - UserID (str, required, unique)
+    - Name (str, required)
+    - Department (str, required)
+    - JobTitle (str, required)
+    - Status (str, required: Active/Terminated/Removed)
+    - Email (str, required)
+    - Manager (str, required, FK to users.csv)
+    - HireDate (date, required, YYYY-MM-DD)
+    - TerminationDate (date, optional, YYYY-MM-DD or empty)
+    - Environment (str, required)
+- **Sample row:**
+    - u001,Alice Johnson,Finance,Finance Admin,Active,alice@company.com,grace,2020-01-15,,HRProd
+
+### sickLeave.csv
+- **Purpose:** Tracks user sick leave periods.
+- **Columns:**
+    - UserID (str, required, FK to users.csv)
+    - StartDate (date, required, YYYY-MM-DD)
+    - EndDate (date, required, YYYY-MM-DD)
+    - Status (str, required: approved/pending/etc.)
+- **Sample row:**
+    - u001,2025-10-20,2025-10-22,approved
+
+### vacation.csv
+- **Purpose:** Tracks user vacation periods.
+- **Columns:**
+    - UserID (str, required, FK to users.csv)
+    - StartDate (date, required, YYYY-MM-DD)
+    - EndDate (date, required, YYYY-MM-DD)
+    - Status (str, required: approved/pending/etc.)
+- **Sample row:**
+    - u001,2025-11-01,2025-11-10,pending
+
+### Constraints & Relationships
+- All IDs must be unique within their file.
+- All FK (foreign key) columns must reference valid entries in the related file.
+- Status codes and values must match those defined in the documentation.
+- Dates must be in the specified format; empty means not applicable.
