@@ -17,7 +17,6 @@ Welcome to the Multi-Agent Access Control Demo documentation! This index summari
 - [approach.md](approach.md): High-level approach, model selection rationale, actionable workflow steps.
 - [flow.md](flow.md): Canonical implementation flow for orchestrator, UI, and agents.
 - [toolcalls.md](toolcalls.md): MCP tool call protocol, registered tool functions, real-time UI patterns.
-- [toolcallactions.md](toolcallactions.md): Action checklist for implementing tool calls across agents and MCP endpoints.
 - [prompts.md](prompts.md): Prompt templates and best practices for AI coding agents.
 - [csv_schemas.md](csv_schemas.md): Canonical CSV schemas for all data files.
 - [wireframe.md](wireframe.md): UI wireframes and layout for Streamlit pages.

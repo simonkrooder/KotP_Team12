@@ -3,7 +3,6 @@
 - [application.md](application.md): End-to-end workflow, agent responsibilities, status codes, CSV schemas, audit/logging, deployment & testing guidance
 - [architecture.md](architecture.md): System architecture, Agent2Agent protocol, MCP server, sequence diagrams, toolcall mappings, module responsibilities
 - [flow.md](flow.md): Canonical workflow diagram
-- [toolcallactions.md](toolcallactions.md): Action checklist for implementing tool calls across agents and MCP endpoints
 - [csv_schemas.md](csv_schemas.md): Canonical CSV schemas and data model
 - [README.md](README.md): Documentation index and onboarding
 
@@ -265,5 +264,3 @@ Real-time UI/agent interaction is achieved by treating toolcalls as triggers for
 **References:**
 - See `architecture.md` for system diagrams and workflow.
 - See `application.md` for user stories and acceptance criteria.
-- See `toolcallactions.md` for implementation checklist.
-- See `TODO.md` for outstanding tasks.
