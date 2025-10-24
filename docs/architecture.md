@@ -1,12 +1,32 @@
-# See Also: For onboarding, environment setup, deployment instructions, and contributor guidance, refer to `/docs/application.md`. This document focuses on technical architecture, agent implementation, protocol, workflow, and audit/compliance details.
 
-For the canonical workflow diagram, see `/docs/flow.md`. For UI wireframes and layouts, see `/docs/wireframe.md`. These files provide the single source of truth for process flow and user interface design.
+# See Also
+- [application.md](application.md): Onboarding, environment setup, deployment instructions, contributor guidance
+- [flow.md](flow.md): Canonical workflow diagram
+- [wireframe.md](wireframe.md): UI wireframes and layouts
+- [toolcalls.md](toolcalls.md): MCP tool call protocol and agent tool call details
+- [csv_schemas.md](csv_schemas.md): Canonical CSV schemas and data model
+- [CONTRIBUTING.md](CONTRIBUTING.md): Developer onboarding and contribution process
+- [README.md](README.md): Documentation index and onboarding
+
+This document focuses on technical architecture, agent implementation, protocol, workflow, and audit/compliance details.
 
 
 # Agent Tool Call Sequences (Explicit Mapping)
 
 # Agent Tool Call Details by Agent
 
+## Canonical Tool Calls (see toolcalls.md for full specification)
+
+The following tool calls are registered as Python async functions and used by agents for all workflow steps. For full details, see [`toolcalls.md`](toolcalls.md).
+
+| Function Name         | Purpose                        | Input Args (required)                | Output Fields                  |
+|----------------------|-------------------------------|--------------------------------------|-------------------------------|
+| check_authorization  | Check user authorization       | user_id, system, access_level        | authorized, evidence, message |
+| lookup_data          | Query data from CSV files      | file, query (dict of filters)        | results, message              |
+| send_notification    | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   |
+| generate_report      | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details |
+
+All tool calls and their results are logged to the audit trail for traceability.
 
 **Note:** All agent tool calls are performed as Python async functions registered with the agent using the Azure AI SDK. The MCP server is implemented as a local Python orchestration pattern (not a REST API). All orchestration, message passing, and workflow logic is handled locally in Python, following the pattern in `src/old/agent_example.py`. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages (not real emails).
 
@@ -521,32 +541,8 @@ The MCP server abstracts and centralizes all integrations, so agents remain modu
 
 ## MCP Server: Architectural Role & Responsibilities
 
-The MCP (Model Context Protocol) server is a core component that must be implemented as part of this application. It is responsible for:
-- Exposing endpoints or interfaces for all tool calls required by agents
-- Handling data access, notifications, and report generation
-- Logging all tool call requests and results for auditability
-- Ensuring agents interact only with the MCP server, not with external systems or data sources directly
 
-The MCP server enables clear separation of concerns, robust integration, and easy testing/mocking of all agent actions. It is the central integration and execution layer for all agent tool calls.
-
-## MCP Server Contract (Quick Reference)
-
-> **Note:** For full details and example requests/responses, see the "MCP Orchestration Function Specification" section below.
-
-The MCP (Model Context Protocol) orchestration layer is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through registered Python async functions in the MCP orchestration layer.
-
-### Tool Function Signatures Summary Table
-
-| Function Name           | Purpose                        | Input Args (required)                | Output Fields                  | Error Handling |
-|------------------------|-------------------------------|--------------------------------------|-------------------------------|----------------|
-| check_authorization    | Check user authorization       | user_id, system, access_level        | authorized, evidence, message | Exception/log   |
-| lookup_data            | Query data from CSV files      | file, query (dict of filters)        | results, message              | Exception/log   |
-| send_notification      | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   | Exception/log   |
-| generate_report        | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details | Exception/log   |
-
-Each function returns a Python dict with the specified output fields. All errors are handled via exceptions and logging.
-
-For detailed input/output examples and error handling, see the "MCP Orchestration Function Specification" section below.
+The MCP (Model Context Protocol) server is a core component that exposes all tool calls required by agents, handles data access, notifications, and report generation, and logs all tool call requests and results for auditability. For full contract, function signatures, and example requests/responses, see [`toolcalls.md`](toolcalls.md).
 
 ...existing code...
 
@@ -757,63 +753,8 @@ This ensures full traceability and compliance for all agent actions. All tool ca
 
 ## Tool Call Definitions
 
-Agents interact with the MCP server exclusively for all tool calls. Below are the tool calls, their arguments, expected results, error handling, and mapping to agent responsibilities and workflow steps.
 
-### Tool Call List
-
-| Tool Call                | Endpoint                  | Agent(s)                | Purpose/Workflow Step                                 |
-|--------------------------|---------------------------|-------------------------|------------------------------------------------------|
-| Authorization Check      | /api/authorization/check  | RightsCheckAgent        | Validate user rights for a mutation                   |
-| Data Lookup              | /api/data/lookup          | All agents              | Query CSV data (users, sick leave, vacation, etc.)    |
-| Notification/Clarification | /api/notify/send        | RequestForInformationAgent | Send (mocked) notification to user/manager           |
-| Report Generation        | /api/report/generate      | AdvisoryAgent           | Generate advisory report for controller               |
-
-### Arguments, Results, Error Handling
-
-#### Authorization Check
-- **Arguments:** user_id (str), system (str), access_level (str)
-- **Result:** authorized (bool), evidence (object), message (str)
-- **Errors:** 400 (bad input), 404 (not found), 500 (internal)
-- **Agent:** RightsCheckAgent
-- **Workflow:** Step 2 (rights validation)
-
-#### Data Lookup
-- **Arguments:** file (str), query (dict)
-- **Result:** results (list of dicts), message (str)
-- **Errors:** 400, 404, 500
-- **Agent:** All agents
-- **Workflow:** Used for context, validation, and evidence gathering
-
-#### Notification/Clarification Request
-- **Arguments:** recipient_id (str), subject (str), body (str), context (dict, optional)
-- **Result:** status (str: "sent" or "mocked"), message_id (str), message (str)
-- **Errors:** 400, 404, 500
-- **Agent:** RequestForInformationAgent
-- **Workflow:** Step 3/4 (clarification, manager validation)
-
-#### Report Generation
-- **Arguments:** mutation_id (str), context (dict)
-- **Result:** report_id (str), summary (str), recommendation (str), details (dict)
-- **Errors:** 400, 404, 500
-- **Agent:** AdvisoryAgent
-- **Workflow:** Step 5 (advisory report)
-
-### Error Handling
-- All errors are returned in the result dict with status 'error' and error details.
-- Agents must log all tool call errors and escalate if needed (e.g., manual intervention).
-- The orchestrator retries failed tool calls up to N times (default: 3), then logs and escalates.
-
-### Mapping to Agent Responsibilities & Workflow Steps
-
-| Step | Agent(s)                | Tool Call(s)                |
-|------|-------------------------|-----------------------------|
-| 1    | InvestigationAgent      | Data Lookup                 |
-| 2    | RightsCheckAgent        | Authorization Check, Data Lookup |
-| 3    | RequestForInformationAgent | Notification, Data Lookup |
-| 4    | RequestForInformationAgent | Notification, Data Lookup |
-| 5    | AdvisoryAgent           | Report Generation, Data Lookup |
-
-This mapping ensures every agent action is routed through the MCP server, fully auditable, and aligned with the workflow.
+Agents interact with the MCP server exclusively for all tool calls. For detailed tool call definitions, arguments, expected results, error handling, and mapping to agent responsibilities and workflow steps, see [`toolcalls.md`](toolcalls.md).
 
 ---
 
