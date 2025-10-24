@@ -1,22 +1,27 @@
+# See Also: For onboarding, environment setup, deployment instructions, and contributor guidance, refer to `/docs/application.md`. This document focuses on technical architecture, agent implementation, protocol, workflow, and audit/compliance details.
+
+For the canonical workflow diagram, see `/docs/flow.md`. For UI wireframes and layouts, see `/docs/wireframe.md`. These files provide the single source of truth for process flow and user interface design.
+
 
 # Agent Tool Call Sequences (Explicit Mapping)
+
 # Agent Tool Call Details by Agent
 
 
-**Note:** All agent tool calls are performed as Python async functions registered with the agent using the Azure AI SDK. There is no REST MCP server; instead, the MCP server is now a local Python orchestration pattern (not a REST API). All orchestration, message passing, and workflow logic is handled locally in Python, following the pattern in `src/old/agent_example.py`. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages (not real emails).
+**Note:** All agent tool calls are performed as Python async functions registered with the agent using the Azure AI SDK. The MCP server is implemented as a local Python orchestration pattern (not a REST API). All orchestration, message passing, and workflow logic is handled locally in Python, following the pattern in `src/old/agent_example.py`. All notifications and agent-to-user/manager communication are mocked and surfaced as UI pages (not real emails).
 
 The following table provides a detailed mapping for each agent, including:
-- The tool calls it makes (with endpoint names)
+- The tool calls it makes (as registered Python async functions)
 - The order/conditions for each call
 - What data is passed to the Azure model for reasoning
 
 
 | Agent                        | Tool Call(s) (Function Name)         | Order/Condition                                                                 | Data Passed to Azure Model for Reasoning |
 |------------------------------|--------------------------------------|---------------------------------------------------------------------------------|-----------------------------------------|
-| InvestigationAgent           | `lookup_data`                        | At investigation start, if additional context/evidence is needed                 | Full investigation context, mutation details, prior findings                   |
-| RightsCheckAgent             | `check_authorization`, `lookup_data` | On rights check request<br>Optionally for supporting evidence                  | User ID, mutation details, system, access level, context                       |
-| RequestForInformationAgent   | `send_notification`, `lookup_data`   | On clarification/validation request<br>To validate claims (e.g., sick leave)    | Mutation context, clarification questions, user/manager info, claim details    |
-| AdvisoryAgent                | `generate_report`, `lookup_data`     | On advisory report request<br>Optionally for additional evidence               | Full investigation context, findings from other agents                         |
+| InvestigationAgent           | `lookup_data` (Python async function)                        | At investigation start, if additional context/evidence is needed                 | Full investigation context, mutation details, prior findings                   |
+| RightsCheckAgent             | `check_authorization`, `lookup_data` (Python async functions) | On rights check request<br>Optionally for supporting evidence                  | User ID, mutation details, system, access level, context                       |
+| RequestForInformationAgent   | `send_notification`, `lookup_data` (Python async functions)   | On clarification/validation request<br>To validate claims (e.g., sick leave)    | Mutation context, clarification questions, user/manager info, claim details    |
+| AdvisoryAgent                | `generate_report`, `lookup_data` (Python async functions)     | On advisory report request<br>Optionally for additional evidence               | Full investigation context, findings from other agents                         |
 
 **Order/Conditions Explained:**
 - Agents only call endpoints as needed for their responsibilities and workflow step.
@@ -40,7 +45,7 @@ When the `RequestForInformationAgent` sends a clarification or validation reques
 - The agent then continues its workflow, validating the response (e.g., by calling the appropriate tool function for sick leave or vacation validation) and returning findings to the orchestrator.
 
 **UI/Backend Flow:**
-1. Agent calls `/api/notify/send` (RequestForInformationAgent → MCP server → UI)
+1. Agent calls the registered Python async notification function (RequestForInformationAgent → MCP orchestration → UI mock)
 2. UI displays a response form to the user/manager
 3. User/manager submits response in the UI
 4. Backend logs the response and updates the investigation context
@@ -64,12 +69,12 @@ The UI wireframes and documentation in [`docs/wireframe.md`](wireframe.md) are d
 - See the sequence diagram and tool call mapping above for how UI states correspond to agent tool calls and workflow steps.
 This section provides an explicit, step-by-step mapping of tool calls for each agent, as implemented via the MCP server (Model Context Protocol). For the full MCP tool call protocol specification, see [`toolcalls.md`](toolcalls.md). This ensures clarity on agent responsibilities and supports both development and auditability.
 ## Agent Tool Call Summary Table
-| Agent                        | Tool Call(s) (Registered Function)           | Sequence/When Used                                 |
-|------------------------------|----------------------------------------------|----------------------------------------------------|
-| InvestigationAgent           | Data Lookup                                  | At investigation start, to gather context          |
-| RightsCheckAgent             | Authorization Check, Data Lookup             | On rights check request                            |
-| RequestForInformationAgent   | Notification, Data Lookup                    | On clarification/validation request                |
-| AdvisoryAgent                | Report Generation, Data Lookup               | On advisory report request                         |
+| Agent                        | Tool Call(s) (Registered Python Async Function)           | Sequence/When Used                                 |
+|------------------------------|----------------------------------------------------------|----------------------------------------------------|
+| InvestigationAgent           | lookup_data                                              | At investigation start, to gather context          |
+| RightsCheckAgent             | check_authorization, lookup_data                         | On rights check request                            |
+| RequestForInformationAgent   | send_notification, lookup_data                           | On clarification/validation request                |
+| AdvisoryAgent                | generate_report, lookup_data                             | On advisory report request                         |
 ## Step-by-Step Tool Call Sequences
 ### InvestigationAgent
 1. Receives new HR mutation context.
@@ -199,11 +204,11 @@ This pattern is illustrated in `src/old/agent_example.py` and should be followed
 
 ## Error, Retry, and Escalation Flows (Example)
 
-The following diagram illustrates how errors, retries, and escalation to manual intervention are handled in the agent workflow:
+The following diagram illustrates how errors, retries, and escalation to manual intervention are handled in the agent workflow (all requests are local Python function calls, not HTTP requests):
 
 ```mermaid
 flowchart TD
-    A[Agent sends request to MCP Server] --> B{MCP Server Response}
+    A[Agent sends request to MCP orchestration] --> B{MCP Response}
     B -- Success --> C[Continue Workflow]
     B -- Error --> D[Log Error & Increment Retry Count]
     D --> E{Retry Count < 3?}
@@ -276,7 +281,7 @@ You can view or edit the diagram directly in Mermaid-compatible editors or VS Co
 | [`src/RequestForInformationAgent.py`](../src/RequestForInformationAgent.py) | Local agent class; calls Azure model for clarifications, manager validation |
 | [`src/AdvisoryAgent.py`](../src/AdvisoryAgent.py)    | Local agent class; calls Azure model for advisory/report generation  |
 | [`src/agent_protocol.py`](../src/agent_protocol.py)   | Defines Agent2Agent protocol, message schema, logging                |
-| [`src/mcp_server.py`](../src/mcp_server.py)       | (Legacy) Implements MCP server API, tool call endpoints, audit logging. Not used in Azure SDK-based pattern.        |
+| [`src/mcp_server.py`](../src/mcp_server.py)       | (Legacy) Implements MCP server API, tool call endpoints, audit logging. Deprecated; not used in Azure SDK-based pattern.        |
 | [`src/ui.py`](../src/ui.py)               | Streamlit UI entrypoint, navigation, page rendering                  |
 | [`data/*.csv`](../data/)              | Data storage: users, roles, authorisations, mutations, audit trail   |
 | [`docs/architecture.md`](architecture.md)    | Architecture documentation, diagrams, protocol, API docs             |
@@ -383,7 +388,6 @@ Each agent is implemented as a Python class/module with a standard interface (e.
 All agent-to-agent communication is handled via the Agent2Agent protocol, ensuring modularity, traceability, and clear context passing.
 
 ---
-
 
 
 ## Agent2Agent Protocol
@@ -527,22 +531,22 @@ The MCP server enables clear separation of concerns, robust integration, and eas
 
 ## MCP Server Contract (Quick Reference)
 
-> **Note:** For full details and example requests/responses, see the "MCP Server API Specification" section below.
+> **Note:** For full details and example requests/responses, see the "MCP Orchestration Function Specification" section below.
 
-The MCP (Model Context Protocol) server is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through the MCP server.
+The MCP (Model Context Protocol) orchestration layer is the central integration and execution layer for all agent tool calls. All agent actions (data lookups, notifications, validations, report generation) are routed through registered Python async functions in the MCP orchestration layer.
 
-### API Endpoints Summary Table
+### Tool Function Signatures Summary Table
 
-| Endpoint                      | Method | Purpose                        | Input Args (required)                | Output Fields                  | Error Codes |
-|-------------------------------|--------|-------------------------------|--------------------------------------|-------------------------------|-------------|
-| /api/authorization/check      | POST   | Check user authorization       | user_id, system, access_level        | authorized, evidence, message | 400,404,500 |
-| /api/data/lookup              | POST   | Query data from CSV files      | file, query (dict of filters)        | results, message              | 400,404,500 |
-| /api/notify/send              | POST   | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   | 400,404,500 |
-| /api/report/generate          | POST   | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details | 400,404,500 |
+| Function Name           | Purpose                        | Input Args (required)                | Output Fields                  | Error Handling |
+|------------------------|-------------------------------|--------------------------------------|-------------------------------|----------------|
+| check_authorization    | Check user authorization       | user_id, system, access_level        | authorized, evidence, message | Exception/log   |
+| lookup_data            | Query data from CSV files      | file, query (dict of filters)        | results, message              | Exception/log   |
+| send_notification      | Send (mocked) notification     | recipient_id, subject, body, context | status, message_id, message   | Exception/log   |
+| generate_report        | Generate advisory report       | mutation_id, context                 | report_id, summary, recommendation, details | Exception/log   |
 
-Each endpoint returns a JSON object with the specified output fields. All errors are returned with an appropriate HTTP status code and error message.
+Each function returns a Python dict with the specified output fields. All errors are handled via exceptions and logging.
 
-For detailed input/output examples and error handling, see the "MCP Server API Specification" section below.
+For detailed input/output examples and error handling, see the "MCP Orchestration Function Specification" section below.
 
 ...existing code...
 
@@ -551,6 +555,8 @@ For detailed input/output examples and error handling, see the "MCP Server API S
 ## Data & UI Foundation
 
 - All data is stored in CSV files (e.g., `authorisations.csv`, `hr_mutations.csv`, `role_authorisations.csv`, `roles.csv`, `users.csv`, `sickLeave.csv`, `vacation.csv`).
+
+For complete and canonical CSV schema definitions, including columns, types, constraints, and sample rows for all data files, see [`csv_schemas.md`](csv_schemas.md). This file is the single source of truth for all data model details and should be referenced for onboarding, validation, and development.
 - The UI (e.g., Streamlit) provides:
     - An HR mutation entry page (with dropdowns for users, applications, and reason field)
     - A chat/trigger page for interacting with and triggering the system
@@ -734,68 +740,6 @@ The MCP (Model Context Protocol) server is the central integration and execution
 - Output: report_id (str), summary (str), recommendation (str), details (dict)
 - Errors: 400, 404, 500
 
-#### Example Requests/Responses
-
-See below for example JSON requests and responses for each endpoint:
-
-```json
-// /api/authorization/check
-{
-    "user_id": "u001",
-    "system": "FinanceApp",
-    "access_level": "Admin"
-}
-// Response
-{
-    "authorized": true,
-    "evidence": {"authorisation_id": "A001", "role_id": "R001"},
-    "message": "User u001 is authorized as Admin for FinanceApp."
-}
-```
-
-```json
-// /api/data/lookup
-{
-    "file": "sickLeave.csv",
-    "query": {"UserID": "u001"}
-}
-// Response
-{
-    "results": [{"UserID": "u001", "StartDate": "2025-10-20", "EndDate": "2025-10-22", "Status": "approved"}],
-    "message": "1 record found."
-}
-```
-
-```json
-// /api/notify/send
-{
-    "recipient_id": "u002",
-    "subject": "Clarification Needed",
-    "body": "Please clarify the reason for your recent HR change.",
-    "context": {"mutation_id": "1001"}
-}
-// Response
-{
-    "status": "mocked",
-    "message_id": "msg-12345",
-    "message": "Notification displayed in UI for user u002."
-}
-```
-
-```json
-// /api/report/generate
-{
-    "mutation_id": "1001",
-    "context": {"status": "Manager Responded", "findings": {"rights_check": true, "user_claim_valid": true}}
-}
-// Response
-{
-    "report_id": "rep-1001",
-    "summary": "All checks passed. Change is valid.",
-    "recommendation": "accept",
-    "details": {"manager_response": "confirmed"}
-}
-```
 
 ### Audit Logging Policy
 
