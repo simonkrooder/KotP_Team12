@@ -241,10 +241,71 @@ class InvestigationAgent:
             )
             log_agent_message(msg, comment="Error calling RightsCheckAgent")
 
+        # --- Agent2Agent: Delegate to RequestForInformationAgent if needed ---
+        # Always log the delegation, and call RequestForInformationAgent
+        info_result = None
+        try:
+            from src.RequestForInformationAgent import RequestForInformationAgent
+            info_agent = RequestForInformationAgent()
+            # Log the agent-to-agent delegation
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="RequestForInformationAgent",
+                action="handle_request",
+                context=context,
+                status="pending"
+            )
+            log_agent_message(msg, comment="InvestigationAgent delegating to RequestForInformationAgent")
+            # Call RequestForInformationAgent synchronously (it will run its own async loop)
+            info_result = await info_agent.handle_request(context)
+            # Log the response (audit trail)
+            msg2 = create_message(
+                sender="RequestForInformationAgent",
+                receiver="InvestigationAgent",
+                action="response",
+                context=info_result,
+                status=info_result.get("status", "unknown")
+            )
+            log_agent_message(msg2, comment="RequestForInformationAgent response to InvestigationAgent")
+            # Explicit audit trail: InvestigationAgent receives RequestForInformationAgent response
+            msg3 = create_message(
+                sender="InvestigationAgent",
+                receiver="InvestigationAgent",
+                action="received_informationagent_response",
+                context=info_result,
+                status=info_result.get("status", "unknown")
+            )
+            log_agent_message(msg3, comment="InvestigationAgent received response from RequestForInformationAgent")
+            logger.info(f"InvestigationAgent received response from RequestForInformationAgent: {info_result}")
+        except Exception as e:
+            import traceback
+            tb_str = traceback.format_exc()
+            logger.error(f"Failed to call RequestForInformationAgent: {e}\n{tb_str}")
+            # Also log to /src/log.txt
+            log_path = os.path.join(os.path.dirname(__file__), 'log.txt')
+            with open(log_path, 'a', encoding='utf-8') as logf:
+                logf.write(f"[RequestForInformationAgent ERROR] {datetime.utcnow().isoformat()}\n{tb_str}\n")
+            info_result = {
+                "agent": "RequestForInformationAgent",
+                "status": "error",
+                "error": f"Failed to call RequestForInformationAgent: {e}",
+                "context": context
+            }
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="RequestForInformationAgent",
+                action="handle_request",
+                context=context,
+                status="error",
+                error={"message": str(e), "traceback": tb_str}
+            )
+            log_agent_message(msg, comment="Error calling RequestForInformationAgent")
+
         # --- Return combined result ---
         return {
             "investigation": investigation_result,
-            "rights_check": rights_result
+            "rights_check": rights_result,
+            "information_request": info_result
         }
 
 # --- MAIN BLOCK ---
