@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timezone
@@ -8,10 +9,24 @@ import json
 import time
 from pending_actions import get_pending_actions, update_action_response
 
+# --- Import InvestigationAgent for triggering on mutation ---
+import sys
+from pathlib import Path
+AGENT_PATH = Path(__file__).parent
+PROJECT_ROOT = AGENT_PATH.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+try:
+    from src.InvestigationAgent import InvestigationAgent
+except ImportError:
+    InvestigationAgent = None
+
 # Audit logging helper for UI actions
 def log_ui_audit(action, mutation_id=None, old_status=None, new_status=None, agent=None, comment=None):
+    import csv
     DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data'))
     AUDIT_FILE = os.path.join(DATA_DIR, 'audit_trail.csv')
+    # Read existing data (preserve header and data)
     if os.path.exists(AUDIT_FILE):
         with open(AUDIT_FILE, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -27,9 +42,29 @@ def log_ui_audit(action, mutation_id=None, old_status=None, new_status=None, age
         data = []
     audit_id = str(uuid.uuid4())[:8]
     timestamp = datetime.now(timezone.utc).isoformat()
-    row = f'{audit_id},{mutation_id or ""},{timestamp},{old_status or ""},{new_status or ""},{agent or "UI"},{json.dumps(comment) if comment else action}\n'
-    with open(AUDIT_FILE, 'w', encoding='utf-8') as f:
-        f.writelines(header + data + [row])
+    # Prepare comment field as string
+    if comment is not None:
+        if not isinstance(comment, str):
+            comment_str = json.dumps(comment, ensure_ascii=False)
+        else:
+            comment_str = comment
+    else:
+        comment_str = str(action)
+    row = [audit_id, mutation_id or "", timestamp, old_status or "", new_status or "", agent or "UI", comment_str]
+    # Write all rows back using csv.writer for robust quoting
+    with open(AUDIT_FILE, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        # Write header
+        writer.writerow(["AuditID", "MutationID", "Timestamp", "OldStatus", "NewStatus", "Agent", "Comment"])
+        # Write existing data rows (skip any blank lines)
+        for line in data:
+            if line.strip():
+                # Parse the line as CSV and write it back to ensure quoting is correct
+                reader = csv.reader([line])
+                for parsed_row in reader:
+                    writer.writerow(parsed_row)
+        # Write the new row
+        writer.writerow(row)
 
 st.set_page_config(page_title="Agentic HR Access Control Demo", layout="wide")
 
@@ -78,20 +113,24 @@ if page == "HR Mutation Entry":
             hr_mut_df = read_csv('hr_mutations')
             mutation_id = str(uuid.uuid4())[:8]
             timestamp = datetime.now(timezone.utc).isoformat()
+            def safe_str(val):
+                if val is None or (isinstance(val, float) and pd.isna(val)):
+                    return ""
+                return str(val)
             new_row = {
-                "MutationID": mutation_id,
-                "Timestamp": timestamp,
-                "ChangedBy": user_map[changed_by],
-                "ChangedFor": user_map[changed_for],
-                "ChangeType": change_type,
-                "FieldChanged": field_changed,
-                "OldValue": old_value,
-                "NewValue": new_value,
-                "Environment": environment,
-                "Metadata": "{}",
+                "MutationID": safe_str(mutation_id),
+                "Timestamp": safe_str(timestamp),
+                "ChangedBy": safe_str(user_map[changed_by]),
+                "ChangedFor": safe_str(user_map[changed_for]),
+                "ChangeType": safe_str(change_type),
+                "FieldChanged": safe_str(field_changed),
+                "OldValue": safe_str(old_value),
+                "NewValue": safe_str(new_value),
+                "Environment": safe_str(environment),
+                "Metadata": "{}",  # Always a string
                 "change_investigation": "Pending",
-                "Reason": reason,
-                "ManagerID": user_map[manager_id]
+                "Reason": safe_str(reason),
+                "ManagerID": safe_str(user_map[manager_id])
             }
             hr_mut_df = pd.concat([hr_mut_df, pd.DataFrame([new_row])], ignore_index=True)
             write_csv('hr_mutations', hr_mut_df)
@@ -104,6 +143,35 @@ if page == "HR Mutation Entry":
                 agent=changed_by,
                 comment={"field": field_changed, "new_value": new_value, "reason": reason}
             )
+
+            # --- Trigger InvestigationAgent (with Agent2Agent chaining) ---
+            if InvestigationAgent is not None:
+                try:
+                    agent = InvestigationAgent()
+                    # Pass the new mutation as context
+                    agent_response = agent.handle_request(new_row)
+                    # If agent_response is a dict with 'investigation' and 'rights_check', extract summary
+                    summary = None
+                    if isinstance(agent_response, dict) and 'investigation' in agent_response:
+                        inv = agent_response.get('investigation', {})
+                        rc = agent_response.get('rights_check', {})
+                        # Prefer investigation response, fallback to error or rights_check
+                        summary = inv.get('response') or inv.get('error')
+                        if not summary and rc:
+                            summary = rc.get('response') or rc.get('error')
+                        if not summary:
+                            summary = str(agent_response)
+                    else:
+                        summary = agent_response.get('response', agent_response) if isinstance(agent_response, dict) else str(agent_response)
+                    st.info(f"Investigation Agent triggered. Response: {summary}")
+                    # Optionally show full JSON result in expandable section
+                    with st.expander("Show full agent response (JSON)"):
+                        st.json(agent_response)
+                except Exception as agent_exc:
+                    st.warning(f"Investigation Agent trigger failed: {agent_exc}")
+            else:
+                st.warning("InvestigationAgent could not be imported; agent not triggered.")
+
             st.success(f"Mutation {mutation_id} submitted successfully!")
         except Exception as e:
             st.error(f"Error submitting mutation: {e}")

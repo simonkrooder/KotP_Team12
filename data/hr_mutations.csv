@@ -1,3 +1,19 @@
 MutationID,Timestamp,ChangedBy,ChangedFor,ChangeType,FieldChanged,OldValue,NewValue,Environment,Metadata,change_investigation,Reason,ManagerID
-test1234,2025-10-23T10:00:00,u001,u002,Update,Salary,50000,52000,HRProd,{},Pending,Annual raise,u003
-6fe4e19e,2025-10-23T21:48:58.523845+00:00,u001,u001,Create,Salary,,1200,HRProd,{},Pending,,u001
+test1234,2025-10-23T10:00:00,u001,u002,Update,Salary,50000.0,52000,HRProd,{},Pending,Annual raise,u003
+6fe4e19e,2025-10-23T21:48:58.523845+00:00,u001,u001,Create,Salary,nan,1200,HRProd,{},Pending,,u001
+016c104d,2025-10-23T22:54:35.534864+00:00,u001,u001,Update,Salary,nan,10000,HRProd,{},Pending,,u001
+29145ddb,2025-10-23T22:59:07.045438+00:00,u001,u003,Update,Salary,1000.0,10000,HRProd,{},Pending,,u001
+e0a65252,2025-10-23T23:20:50.698930+00:00,u001,u001,Create,Salary,1000.0,20000,HRProd,{},Pending,,u001
+789cf896,2025-10-23T23:26:54.389440+00:00,u001,u001,Create,Salary,1000.0,20000,HRProd,{},Pending,,u001
+1a436ebf,2025-10-23T23:33:24.649522+00:00,u001,u001,Create,Salary,1000.0,20000,HRProd,{},Pending,,u001
+afc15669,2025-10-23T23:40:41.519507+00:00,u001,u001,Create,Salary,1000.0,5200,HRProd,{},Pending,,u001
+925f8978,2025-10-23T23:42:50.419083+00:00,u001,u001,Create,Salary,1000.0,20000,HRProd,{},Pending,,u001
+3f47a724,2025-10-23T23:44:07.896069+00:00,u001,u001,Create,Salary,1000.0,10000,HRProd,{},Pending,,u001
+51b873a4,2025-10-23T23:45:18.569579+00:00,u001,u001,Create,Salary,1000.0,10000,HRProd,{},Pending,,u001
+87bce1c4,2025-10-23T23:49:16.057667+00:00,u001,u001,Create,Salary,1000.0,10000,HRProd,{},Pending,,u001
+f263a998,2025-10-23T23:51:24.574129+00:00,u001,u001,Create,Salary,2500.0,1200,HRProd,{},Pending,,u001
+0de695ce,2025-10-23T23:53:30.832459+00:00,u001,u001,Create,Salary,1000.0,1200,HRProd,{},Pending,,u001
+5e634eb4,2025-10-23T23:57:08.488366+00:00,u001,u003,Create,Salary,1000.0,1200,HRProd,{},Pending,,u001
+fc129737,2025-10-23T23:59:30.779460+00:00,u001,u003,Create,Salary,1000.0,5200,HRProd,{},Pending,,u001
+570a6508,2025-10-24T00:04:28.858974+00:00,u001,u001,Create,Salary,nan,10000,HRProd,{},Pending,,u001
+cc0c797a,2025-10-24T00:06:23.073024+00:00,u001,u001,Create,Salary,1000,10000,HRProd,{},Pending,,u001

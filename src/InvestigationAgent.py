@@ -4,6 +4,7 @@ import logging
 import sys
 import asyncio
 from pathlib import Path
+from datetime import datetime
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import AsyncFunctionTool, MessageRole
 from azure.identity import DefaultAzureCredential
@@ -80,7 +81,14 @@ class InvestigationAgent:
         if not self.initialized:
             await self.initialize()
         import json
-        # Always serialize context to a string for the content field
+        from src.agent_protocol import create_message, log_agent_message
+
+        def log_to_file(message: str):
+            log_path = os.path.join(os.path.dirname(__file__), 'log.txt')
+            with open(log_path, 'a', encoding='utf-8') as logf:
+                logf.write(message + '\n')
+
+        # --- InvestigationAgent step ---
         message = self.project_client.agents.messages.create(
             thread_id=self.thread.id,
             role="user",
@@ -92,7 +100,6 @@ class InvestigationAgent:
         )
         max_iterations = 60
         iteration = 0
-        from src.agent_protocol import create_message, log_agent_message
         while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
             await asyncio.sleep(2)
             iteration += 1
@@ -146,32 +153,99 @@ class InvestigationAgent:
                         tool_outputs=tool_outputs
                     )
                     logger.info("Tool outputs submitted.")
+
+        investigation_result = None
         if run.status == "completed":
             response = self.project_client.agents.messages.get_last_message_by_role(
                 thread_id=self.thread.id,
                 role=MessageRole.AGENT,
             )
             if response:
-                return {
+                investigation_result = {
                     "agent": "InvestigationAgent",
                     "status": "completed",
                     "response": "\n".join(t.text.value for t in response.text_messages),
                     "context": context
                 }
             else:
-                return {
+                investigation_result = {
                     "agent": "InvestigationAgent",
                     "status": "error",
                     "error": "No response message found.",
                     "context": context
                 }
         elif run.status == "failed":
-            return {
+            investigation_result = {
                 "agent": "InvestigationAgent",
                 "status": "error",
                 "error": str(run.last_error),
                 "context": context
             }
+
+        # --- Agent2Agent: Call RightsCheckAgent ---
+        # Import here to avoid circular import at module level
+        import traceback
+        try:
+            from src.RightsCheckAgent import RightsCheckAgent
+            rights_agent = RightsCheckAgent()
+            # Log the agent-to-agent message
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="RightsCheckAgent",
+                action="handle_request",
+                context=context,
+                status="pending"
+            )
+            log_agent_message(msg, comment="InvestigationAgent delegating to RightsCheckAgent")
+            # Call RightsCheckAgent synchronously (it will run its own async loop)
+            rights_result = await rights_agent.handle_request(context)
+            # Log the response (audit trail)
+            msg2 = create_message(
+                sender="RightsCheckAgent",
+                receiver="InvestigationAgent",
+                action="response",
+                context=rights_result,
+                status=rights_result.get("status", "unknown")
+            )
+            log_agent_message(msg2, comment="RightsCheckAgent response to InvestigationAgent")
+            # Explicit audit trail: InvestigationAgent receives RightsCheckAgent response
+            msg3 = create_message(
+                sender="InvestigationAgent",
+                receiver="InvestigationAgent",
+                action="received_rightscheck_response",
+                context=rights_result,
+                status=rights_result.get("status", "unknown")
+            )
+            log_agent_message(msg3, comment="InvestigationAgent received response from RightsCheckAgent")
+            logger.info(f"InvestigationAgent received response from RightsCheckAgent: {rights_result}")
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            logger.error(f"Failed to call RightsCheckAgent: {e}\n{tb_str}")
+            # Also log to /src/log.txt
+            log_path = os.path.join(os.path.dirname(__file__), 'log.txt')
+            with open(log_path, 'a', encoding='utf-8') as logf:
+                logf.write(f"[RightsCheckAgent ERROR] {datetime.utcnow().isoformat()}\n{tb_str}\n")
+            rights_result = {
+                "agent": "RightsCheckAgent",
+                "status": "error",
+                "error": f"Failed to call RightsCheckAgent: {e}",
+                "context": context
+            }
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="RightsCheckAgent",
+                action="handle_request",
+                context=context,
+                status="error",
+                error={"message": str(e), "traceback": tb_str}
+            )
+            log_agent_message(msg, comment="Error calling RightsCheckAgent")
+
+        # --- Return combined result ---
+        return {
+            "investigation": investigation_result,
+            "rights_check": rights_result
+        }
 
 # --- MAIN BLOCK ---
 if __name__ == "__main__":

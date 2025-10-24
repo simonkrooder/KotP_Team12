@@ -1,22 +1,75 @@
-# AUDIT TRAIL DATA
-# Purpose: Logs all agent actions and status changes for traceability and compliance.
-# Used to reconstruct the step-by-step investigation and decision process for each HR mutation.
-#
-# Column Definitions:
-# - AuditID: Unique identifier for each audit log entry
-# - MutationID: Reference to the HR mutation being audited
-# - Timestamp: ISO 8601 timestamp of the action (YYYY-MM-DDTHH:MM:SSZ)
-# - OldStatus: Previous status before the change
-# - NewStatus: New status after the change
-# - Agent: Name of the agent or process making the change
-# - Comment: Additional context or reason for the status change
-#
 AuditID,MutationID,Timestamp,OldStatus,NewStatus,Agent,Comment
-e1a1a1a1,mut001,2025-10-23T10:00:00,Pending,Investigation Started,InvestigationAgent,"Initial investigation started."
-e1a1a1a2,mut001,2025-10-23T10:05:00,Investigation Started,Pending Approval,Orchestrator,"Escalated to manager for approval."
-e1a1a1a3,mut001,2025-10-23T10:10:00,Pending Approval,Approved,ManagerAgent,"Manager approved the mutation."
-e1a1a1a4,mut002,2025-10-23T11:00:00,Pending,Investigation Started,InvestigationAgent,"Initial investigation started."
-e1a1a1a5,mut002,2025-10-23T11:05:00,Investigation Started,Rejected,Orchestrator,"Rejected due to missing documentation."
-e1a1a1a6,mut003,2025-10-23T12:00:00,Pending,Investigation Started,InvestigationAgent,"Initial investigation started."
-e1a1a1a7,mut003,2025-10-23T12:10:00,Investigation Started,Pending Approval,Orchestrator,"Escalated to manager for approval."
-e1a1a1a8,mut003,2025-10-23T12:15:00,Pending Approval,Approved,ManagerAgent,"Manager approved the mutation."
+e1a1a1a1,mut001,2025-10-23T10:00:00,Pending,Investigation Started,InvestigationAgent,Initial investigation started.
+e1a1a1a2,mut001,2025-10-23T10:05:00,Investigation Started,Pending Approval,Orchestrator,Escalated to manager for approval.
+e1a1a1a3,mut001,2025-10-23T10:10:00,Pending Approval,Approved,ManagerAgent,Manager approved the mutation.
+e1a1a1a4,mut002,2025-10-23T11:00:00,Pending,Investigation Started,InvestigationAgent,Initial investigation started.
+e1a1a1a5,mut002,2025-10-23T11:05:00,Investigation Started,Rejected,Orchestrator,Rejected due to missing documentation.
+e1a1a1a6,mut003,2025-10-23T12:00:00,Pending,Investigation Started,InvestigationAgent,Initial investigation started.
+e1a1a1a7,mut003,2025-10-23T12:10:00,Investigation Started,Pending Approval,Orchestrator,Escalated to manager for approval.
+e1a1a1a8,mut003,2025-10-23T12:15:00,Pending Approval,Approved,ManagerAgent,Manager approved the mutation.
+a03f28ff,016c104d,2025-10-23T22:54:35.650804+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+0e8abd2f,29145ddb,2025-10-23T22:59:07.051528+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+7d240634,5f855a44,2025-10-23T23:09:25.488802+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""5200"", ""reason"": """"}"
+0e18de93,aaa4441d,2025-10-23T23:13:52.026964+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+f5669864,e0a65252,2025-10-23T23:20:50.703897+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""20000"", ""reason"": """"}"
+9fe33455,1a436ebf,2025-10-23T23:33:24.657232+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""20000"", ""reason"": """"}"
+7791fd2e,unknown,2025-10-23T23:33:36.604041,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+ccb09fbf,unknown,2025-10-23T23:33:36.604407,,error,InvestigationAgent,Error calling RightsCheckAgent
+a873a914,afc15669,2025-10-23T23:40:41.523392+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""5200"", ""reason"": """"}"
+c69c3a26,unknown,2025-10-23T23:40:51.267931,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+68085bba,unknown,2025-10-23T23:40:51.271421,,error,InvestigationAgent,Error calling RightsCheckAgent
+8c7ed9fb,925f8978,2025-10-23T23:42:50.423672+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""20000"", ""reason"": """"}"
+15280691,unknown,2025-10-23T23:42:58.682221,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+392b3c29,unknown,2025-10-23T23:42:58.684582,,error,InvestigationAgent,Error calling RightsCheckAgent
+97b1ea83,3f47a724,2025-10-23T23:44:07.900685+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+aa626ae4,unknown,2025-10-23T23:44:16.130202,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+6beadff5,unknown,2025-10-23T23:44:21.225380,,error,RightsCheckAgent,"Tool call error, retry 1"
+e975a604,unknown,2025-10-23T23:44:21.226377,,error,RightsCheckAgent,"Tool call error, retry 2"
+ac394dc8,unknown,2025-10-23T23:44:21.227029,,error,RightsCheckAgent,"Tool call error, retry 3"
+08a069fb,unknown,2025-10-23T23:44:21.227700,,error,RightsCheckAgent,"Tool call error, retry 1"
+a1483e98,unknown,2025-10-23T23:44:21.228339,,error,RightsCheckAgent,"Tool call error, retry 2"
+3f284066,unknown,2025-10-23T23:44:21.228949,,error,RightsCheckAgent,"Tool call error, retry 3"
+eefe24c2,unknown,2025-10-23T23:44:21.743044,,error,InvestigationAgent,Error calling RightsCheckAgent
+09beeb2a,51b873a4,2025-10-23T23:45:18.574492+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+7be0cf76,unknown,2025-10-23T23:45:26.870550,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+5447945e,unknown,2025-10-23T23:45:31.893393,,error,RightsCheckAgent,"Tool call error, retry 1"
+f2abc73a,unknown,2025-10-23T23:45:31.894029,,error,RightsCheckAgent,"Tool call error, retry 2"
+043cae9d,unknown,2025-10-23T23:45:31.894820,,error,RightsCheckAgent,"Tool call error, retry 3"
+76307bec,unknown,2025-10-23T23:45:31.895400,,error,RightsCheckAgent,"Tool call error, retry 1"
+0ccfc002,unknown,2025-10-23T23:45:31.895826,,error,RightsCheckAgent,"Tool call error, retry 2"
+e98490b8,unknown,2025-10-23T23:45:31.896219,,error,RightsCheckAgent,"Tool call error, retry 3"
+4449b63e,51b873a4,2025-10-23T23:45:35.359920,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+e86b2a22,87bce1c4,2025-10-23T23:49:16.063878+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+c4fef149,unknown,2025-10-23T23:49:26.169917,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+cc896542,unknown,2025-10-23T23:49:31.400016,,error,RightsCheckAgent,"Error in tool call async_check_authorization with args {'user_id': 'u001', 'system': 'HRProd', 'access_level': 'Create'}: 'AsyncFunctionTool' object has no attribute 'tools' (retry 1)"
+37698b43,unknown,2025-10-23T23:49:31.400604,,error,RightsCheckAgent,"Error in tool call async_check_authorization with args {'user_id': 'u001', 'system': 'HRProd', 'access_level': 'Create'}: 'AsyncFunctionTool' object has no attribute 'tools' (retry 2)"
+af76673b,unknown,2025-10-23T23:49:31.401060,,error,RightsCheckAgent,"Error in tool call async_check_authorization with args {'user_id': 'u001', 'system': 'HRProd', 'access_level': 'Create'}: 'AsyncFunctionTool' object has no attribute 'tools' (retry 3)"
+26bd65ea,87bce1c4,2025-10-23T23:49:34.973595,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+7d106612,f263a998,2025-10-23T23:51:24.580859+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1200"", ""reason"": """"}"
+c0e7932e,unknown,2025-10-23T23:51:35.738186,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+81f399c0,unknown,2025-10-23T23:51:35.742279,,error,InvestigationAgent,Error calling RightsCheckAgent
+dd9aaec9,0de695ce,2025-10-23T23:53:30.836157+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1200"", ""reason"": """"}"
+25a337b1,unknown,2025-10-23T23:53:39.420520,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+8d6f70a2,unknown,2025-10-23T23:53:44.614229,,success,RightsCheckAgent,Tool call success
+9a2ef374,0de695ce,2025-10-23T23:53:47.943792,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+dc303168,5e634eb4,2025-10-23T23:57:08.522034+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1200"", ""reason"": """"}"
+2f7e6dee,unknown,2025-10-23T23:57:18.964116,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+292a074d,unknown,2025-10-23T23:57:24.076081,,success,RightsCheckAgent,Tool call success
+cd035157,unknown,2025-10-23T23:57:31.278508,,error,RightsCheckAgent,Error in tool call async_lookup_data with args {'file': 'authorisations.csv'}: get_toolset.<locals>.async_lookup_data() missing 1 required positional argument: 'query' (retry 1)
+b850a69b,unknown,2025-10-23T23:57:31.279391,,error,RightsCheckAgent,Error in tool call async_lookup_data with args {'file': 'authorisations.csv'}: get_toolset.<locals>.async_lookup_data() missing 1 required positional argument: 'query' (retry 2)
+561858f2,unknown,2025-10-23T23:57:31.279942,,error,RightsCheckAgent,Error in tool call async_lookup_data with args {'file': 'authorisations.csv'}: get_toolset.<locals>.async_lookup_data() missing 1 required positional argument: 'query' (retry 3)
+3c6b17c7,5e634eb4,2025-10-23T23:57:34.647376,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+15d2322c,fc129737,2025-10-23T23:59:30.784569+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""5200"", ""reason"": """"}"
+ebf5f7ae,unknown,2025-10-23T23:59:38.817675,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+38b65d7c,unknown,2025-10-23T23:59:44.992928,,success,RightsCheckAgent,Tool call success
+035f51c5,fc129737,2025-10-23T23:59:48.350553,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+7e89a0fd,570a6508,2025-10-24T00:04:28.862768+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+3fa80550,unknown,2025-10-24T00:04:38.641155,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+33729712,unknown,2025-10-24T00:04:44.056602,,success,RightsCheckAgent,Tool call success
+de7d17e0,570a6508,2025-10-24T00:04:47.532678,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+6ad40528,570a6508,2025-10-24T00:04:47.532948,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
+6e8c3205,cc0c797a,2025-10-24T00:06:23.076845+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10000"", ""reason"": """"}"
+f2cb2b45,unknown,2025-10-24T00:06:31.032261,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+fe22e409,unknown,2025-10-24T00:06:36.357843,,success,RightsCheckAgent,Tool call success
+305b9a5e,cc0c797a,2025-10-24T00:06:39.768167,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+a30e866b,cc0c797a,2025-10-24T00:06:39.768428,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
