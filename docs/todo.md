@@ -96,12 +96,19 @@ This list maps each major TODO/action point from `application.md` to its current
 
 ## Outstanding/Nice-to-Have
 
-- [ ] **Formal Agent2Agent Protocol Abstraction**
 	- Current: Sequential orchestration in `agent_main.py`.
 	- Next step: Implement a message-passing or protocol abstraction if needed for extensibility.
 
----
 
+
+## Documentation Checklist PR: Missing Docs & References
+
+- [ ] Add `/docs/agentsetup.md` (referenced in multiple docs, but missing)
+- [ ] Add `/docs/CHANGELOG.md` (referenced for changelog/dev diary, but missing)
+- [ ] Add `/docs/README.md` (or `/docs/index.md`) summarizing and linking all docs for onboarding
+- [ ] Audit all references to missing docs and update them to point to the correct file (or add the missing file)
+
+---
 
 ## Testing & Validation
 - [ ] Test agent initialization and message flow with sample queries and data.
