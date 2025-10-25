@@ -125,6 +125,17 @@ class RequestForInformationAgent:
         max_iterations = 60
         iteration = 0
         from src.agent_protocol import create_message, log_agent_message
+        def ensure_mutation_id(ctx):
+            ctx = dict(ctx) if ctx else {}
+            if 'mutation_id' not in ctx:
+                # Try to infer from nested context
+                for v in ctx.values():
+                    if isinstance(v, dict) and 'mutation_id' in v:
+                        ctx['mutation_id'] = v['mutation_id']
+                        break
+                if 'mutation_id' not in ctx:
+                    ctx['mutation_id'] = 'unknown'
+            return ctx
         _, tool_map = get_toolset()
         while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
             await asyncio.sleep(2)
@@ -150,7 +161,7 @@ class RequestForInformationAgent:
                                 sender="RequestForInformationAgent",
                                 receiver="ToolCall",
                                 action=tool_call.function.name,
-                                context=args,
+                                context=ensure_mutation_id(args),
                                 status="success",
                                 error=None
                             )
@@ -163,7 +174,7 @@ class RequestForInformationAgent:
                                 sender="RequestForInformationAgent",
                                 receiver="ToolCall",
                                 action=tool_call.function.name,
-                                context=args,
+                                context=ensure_mutation_id(args),
                                 status="error",
                                 error={"message": str(e), "retry": retries, "args": args}
                             )

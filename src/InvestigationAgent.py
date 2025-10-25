@@ -291,63 +291,62 @@ class InvestigationAgent:
 
         # --- Agent2Agent: Step 2: If user claim valid, ask RequestForInformationAgent for manager validation ---
         info_manager_result = None
-        # Only proceed if user claim is valid (status completed and response contains 'valid')
-        if info_user_result and info_user_result.get("status") == "completed" and "valid" in info_user_result.get("response", "").lower():
-            try:
-                # Build manager validation context
-                manager_context = {
-                    **context,
-                    "clarification_type": "manager",
-                    "user_clarification_result": info_user_result.get("response", "")
-                }
-                info_agent = RequestForInformationAgent()
-                msg = create_message(
-                    sender="InvestigationAgent",
-                    receiver="RequestForInformationAgent",
-                    action="request_manager_validation",
-                    context=manager_context,
-                    status="pending"
-                )
-                log_agent_message(msg, comment="InvestigationAgent delegating to RequestForInformationAgent for manager approval flow")
-                info_manager_result = await info_agent.handle_request(manager_context)
-                msg2 = create_message(
-                    sender="RequestForInformationAgent",
-                    receiver="InvestigationAgent",
-                    action="response_manager_validation",
-                    context=info_manager_result,
-                    status=info_manager_result.get("status", "unknown")
-                )
-                log_agent_message(msg2, comment="RequestForInformationAgent response to InvestigationAgent (manager approval)")
-                msg3 = create_message(
-                    sender="InvestigationAgent",
-                    receiver="InvestigationAgent",
-                    action="received_informationagent_manager_response",
-                    context=info_manager_result,
-                    status=info_manager_result.get("status", "unknown")
-                )
-                log_agent_message(msg3, comment="InvestigationAgent received response from RequestForInformationAgent (manager approval)")
-                logger.info(f"InvestigationAgent received response from RequestForInformationAgent (manager approval): {info_manager_result}")
-            except Exception as e:
-                tb_str = traceback.format_exc()
-                logger.error(f"Failed to call RequestForInformationAgent (manager approval): {e}\n{tb_str}")
-                log_path = os.path.join(os.path.dirname(__file__), 'log.txt')
-                with open(log_path, 'a', encoding='utf-8') as logf:
-                    logf.write(f"[RequestForInformationAgent MANAGER ERROR] {datetime.utcnow().isoformat()}\n{tb_str}\n")
-                info_manager_result = {
-                    "agent": "RequestForInformationAgent",
-                    "status": "error",
-                    "error": f"Failed to call RequestForInformationAgent (manager approval): {e}",
-                    "context": manager_context
-                }
-                msg = create_message(
-                    sender="InvestigationAgent",
-                    receiver="RequestForInformationAgent",
-                    action="request_manager_validation",
-                    context=manager_context,
-                    status="error",
-                    error={"message": str(e), "traceback": tb_str}
-                )
-                log_agent_message(msg, comment="Error calling RequestForInformationAgent (manager approval)")
+        # Always proceed to manager validation, regardless of user clarification result
+        try:
+            # Build manager validation context
+            manager_context = {
+                **context,
+                "clarification_type": "manager",
+                "user_clarification_result": info_user_result.get("response", "") if info_user_result else ""
+            }
+            info_agent = RequestForInformationAgent()
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="RequestForInformationAgent",
+                action="request_manager_validation",
+                context=manager_context,
+                status="pending"
+            )
+            log_agent_message(msg, comment="InvestigationAgent delegating to RequestForInformationAgent for manager approval flow")
+            info_manager_result = await info_agent.handle_request(manager_context)
+            msg2 = create_message(
+                sender="RequestForInformationAgent",
+                receiver="InvestigationAgent",
+                action="response_manager_validation",
+                context=info_manager_result,
+                status=info_manager_result.get("status", "unknown")
+            )
+            log_agent_message(msg2, comment="RequestForInformationAgent response to InvestigationAgent (manager approval)")
+            msg3 = create_message(
+                sender="InvestigationAgent",
+                receiver="InvestigationAgent",
+                action="received_informationagent_manager_response",
+                context=info_manager_result,
+                status=info_manager_result.get("status", "unknown")
+            )
+            log_agent_message(msg3, comment="InvestigationAgent received response from RequestForInformationAgent (manager approval)")
+            logger.info(f"InvestigationAgent received response from RequestForInformationAgent (manager approval): {info_manager_result}")
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            logger.error(f"Failed to call RequestForInformationAgent (manager approval): {e}\n{tb_str}")
+            log_path = os.path.join(os.path.dirname(__file__), 'log.txt')
+            with open(log_path, 'a', encoding='utf-8') as logf:
+                logf.write(f"[RequestForInformationAgent MANAGER ERROR] {datetime.utcnow().isoformat()}\n{tb_str}\n")
+            info_manager_result = {
+                "agent": "RequestForInformationAgent",
+                "status": "error",
+                "error": f"Failed to call RequestForInformationAgent (manager approval): {e}",
+                "context": manager_context
+            }
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="RequestForInformationAgent",
+                action="request_manager_validation",
+                context=manager_context,
+                status="error",
+                error={"message": str(e), "traceback": tb_str}
+            )
+            log_agent_message(msg, comment="Error calling RequestForInformationAgent (manager approval)")
 
         # --- Return combined result ---
         return {
