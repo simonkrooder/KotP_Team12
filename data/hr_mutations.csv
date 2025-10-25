@@ -1,3 +1,8 @@
 MutationID,Timestamp,ChangedBy,ChangedFor,ChangeType,FieldChanged,OldValue,NewValue,Environment,Metadata,change_investigation,Reason,ManagerID
 test1234,2025-10-23T10:00:00,u001,u002,Update,Salary,50000.0,52000,HRProd,{},Pending,Annual raise,u003
 6fe4e19e,2025-10-23T21:48:58.523845+00:00,u001,u001,Create,Salary,nan,1200,HRProd,{},Pending,,u001
+bc10ac4f,2025-10-25T08:49:25.850706+00:00,u001,u001,Create,Salary,1000.0,1200,HRProd,{},Pending,,u006
+27f2ea2b,2025-10-25T08:56:51.024337+00:00,u001,u001,Create,Salary,2500.0,1000,HRProd,{},Pending,,u001
+1823658e,2025-10-25T08:59:48.559728+00:00,u001,u001,Create,Salary,1000.0,10,HRProd,{},Pending,,u001
+47e50651,2025-10-25T11:10:58.923571+00:00,u001,u001,Create,Salary,1000.0,5200,HRProd,{},Pending,,u001
+fc34aa26,2025-10-25T11:14:48.802359+00:00,u001,u001,Create,Salary,1000,100000,HRProd,{},Pending,,u001
