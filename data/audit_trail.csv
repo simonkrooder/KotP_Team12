@@ -7,169 +7,19 @@ e1a1a1a5,mut002,2025-10-23T11:05:00,Investigation Started,Rejected,Orchestrator,
 e1a1a1a6,mut003,2025-10-23T12:00:00,Pending,Investigation Started,InvestigationAgent,Initial investigation started.
 e1a1a1a7,mut003,2025-10-23T12:10:00,Investigation Started,Pending Approval,Orchestrator,Escalated to manager for approval.
 e1a1a1a8,mut003,2025-10-23T12:15:00,Pending Approval,Approved,ManagerAgent,Manager approved the mutation.
-4118037b,bc10ac4f,2025-10-25T08:49:25.895517+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1200"", ""reason"": """"}"
-74c24f98,unknown,2025-10-25T08:49:40.863416,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-a45a2b03,unknown,2025-10-25T08:49:46.006176,,success,RightsCheckAgent,Tool call success
-7d7f10a8,unknown,2025-10-25T08:49:49.054678,,success,RightsCheckAgent,Tool call success
-cf3c21ba,bc10ac4f,2025-10-25T08:49:52.960820,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-c9ac7416,bc10ac4f,2025-10-25T08:49:52.961029,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-812e8255,unknown,2025-10-25T08:49:52.969779,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent
-fcda1636,unknown,2025-10-25T08:49:58.472259,,success,RequestForInformationAgent,Tool call success
-2fa37f86,unknown,2025-10-25T08:49:58.472844,,success,RequestForInformationAgent,Tool call success
-841416c4,bc10ac4f,2025-10-25T08:50:02.484895,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent
-41ede71c,bc10ac4f,2025-10-25T08:50:02.485130,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent
-0d6aa0b8,27f2ea2b,2025-10-25T08:56:51.029486+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1000"", ""reason"": """"}"
-077f68d8,unknown,2025-10-25T08:57:00.734571,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-5b8ddbcf,unknown,2025-10-25T08:57:06.052366,,success,RightsCheckAgent,Tool call success
-dcec6820,unknown,2025-10-25T08:57:06.052825,,success,RightsCheckAgent,Tool call success
-efd5ba15,27f2ea2b,2025-10-25T08:57:09.458237,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-8cf72952,27f2ea2b,2025-10-25T08:57:09.458470,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-7a8cb38e,unknown,2025-10-25T08:57:09.461173,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager validation
-e6b9cd42,unknown,2025-10-25T08:57:14.368739,,success,RequestForInformationAgent,Tool call success
-019a14b4,27f2ea2b,2025-10-25T08:57:18.063086,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager validation)
-bc7810a0,27f2ea2b,2025-10-25T08:57:18.063287,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager validation)
-98fd782c,1823658e,2025-10-25T08:59:48.565051+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10"", ""reason"": """"}"
-c1b97095,unknown,2025-10-25T08:59:56.763141,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-10d7f992,unknown,2025-10-25T09:00:01.791534,,success,RightsCheckAgent,Tool call success
-594fe991,1823658e,2025-10-25T09:00:05.159177,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-c5592e7e,1823658e,2025-10-25T09:00:05.159399,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-64136f37,unknown,2025-10-25T09:00:05.163426,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-fdeed13e,unknown,2025-10-25T09:00:10.402449,,success,RequestForInformationAgent,Tool call success
-662b9cea,1823658e,2025-10-25T09:00:13.805794,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-893c09e0,1823658e,2025-10-25T09:00:13.805986,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-05f1fe5b,47e50651,2025-10-25T11:10:59.088213+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""5200"", ""reason"": """"}"
-64babe5d,unknown,2025-10-25T11:11:15.170006,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-6c38724b,unknown,2025-10-25T11:11:20.370292,,success,RightsCheckAgent,Tool call success
-591b603e,47e50651,2025-10-25T11:11:23.873465,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-633cc794,47e50651,2025-10-25T11:11:23.873622,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-bcbf2287,unknown,2025-10-25T11:11:23.876339,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-88ed18dc,unknown,2025-10-25T11:11:28.799282,,success,RequestForInformationAgent,Tool call success
-5ee47f53,47e50651,2025-10-25T11:11:32.228519,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-9b2fe188,47e50651,2025-10-25T11:11:32.228689,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-97e3f106,fc34aa26,2025-10-25T11:14:48.807244+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""100000"", ""reason"": """"}"
-fc7968fd,unknown,2025-10-25T11:14:57.393318,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-2d9c5ee0,unknown,2025-10-25T11:15:02.606649,,success,RightsCheckAgent,Tool call success
-650f100a,unknown,2025-10-25T11:15:02.607152,,success,RightsCheckAgent,Tool call success
-f0e8bed4,fc34aa26,2025-10-25T11:15:05.871045,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-b915b629,fc34aa26,2025-10-25T11:15:05.871201,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-6e08faa6,unknown,2025-10-25T11:15:05.873754,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-b4a922bc,unknown,2025-10-25T11:15:10.948394,,success,RequestForInformationAgent,Tool call success
-724768e0,fc34aa26,2025-10-25T11:15:14.529806,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-23a3c261,fc34aa26,2025-10-25T11:15:14.529964,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-3403fe17,unknown,2025-10-25T11:15:14.530927,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager approval flow
-a0471e65,unknown,2025-10-25T11:15:19.656347,,success,RequestForInformationAgent,Tool call success
-4402ce7d,fc34aa26,2025-10-25T11:15:22.957109,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager approval)
-a62746bf,fc34aa26,2025-10-25T11:15:22.957262,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager approval)
-58bc3a9e,66f6c33f,2025-10-25T11:21:00.229071+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1200"", ""reason"": """"}"
-56adb7f4,unknown,2025-10-25T11:21:10.071121,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-a8fc6cc1,unknown,2025-10-25T11:21:15.227367,,success,RightsCheckAgent,Tool call success
-09131016,unknown,2025-10-25T11:21:15.227762,,success,RightsCheckAgent,Tool call success
-a400dc25,66f6c33f,2025-10-25T11:21:19.082429,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-584e725c,66f6c33f,2025-10-25T11:21:19.082591,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-d2a53aa9,unknown,2025-10-25T11:21:19.085095,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-a634d4dd,unknown,2025-10-25T11:21:24.306642,,success,RequestForInformationAgent,Tool call success
-eff3d9aa,66f6c33f,2025-10-25T11:21:27.686228,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-b3e0b5a7,66f6c33f,2025-10-25T11:21:27.686394,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-d137540c,83bc07ee,2025-10-25T11:25:21.065240+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""100000"", ""reason"": """"}"
-c1b4e1f9,unknown,2025-10-25T11:25:29.683041,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-09eb7d98,unknown,2025-10-25T11:25:34.760947,,success,RightsCheckAgent,Tool call success
-4232e633,unknown,2025-10-25T11:25:34.761340,,success,RightsCheckAgent,Tool call success
-21d31f50,83bc07ee,2025-10-25T11:25:38.411680,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-bb73bb0f,83bc07ee,2025-10-25T11:25:38.411867,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-1c84fdf6,unknown,2025-10-25T11:25:38.418451,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-cb8192c0,unknown,2025-10-25T11:25:43.373794,,success,RequestForInformationAgent,Tool call success
-dc9db1ba,83bc07ee,2025-10-25T11:25:46.667759,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-61061931,83bc07ee,2025-10-25T11:25:46.667931,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-48de6459,9395e6e9,2025-10-25T11:26:46.098915+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""1000"", ""reason"": """"}"
-a0b4a89a,unknown,2025-10-25T11:26:54.819771,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-44d599b2,unknown,2025-10-25T11:26:59.873883,,success,RightsCheckAgent,Tool call success
-4f7a470b,9395e6e9,2025-10-25T11:27:03.359789,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-95927c3f,9395e6e9,2025-10-25T11:27:03.359959,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-bec869ca,unknown,2025-10-25T11:27:03.366305,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-b18e4f38,unknown,2025-10-25T11:27:08.512590,,success,RequestForInformationAgent,Tool call success
-1385b0ba,9395e6e9,2025-10-25T11:27:11.892878,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-0834d7b8,9395e6e9,2025-10-25T11:27:11.893057,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-6cd2bb20,4c0aa20f,2025-10-25T11:30:59.523076+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""100000"", ""reason"": """"}"
-d9c2184a,unknown,2025-10-25T11:31:07.205574,,error,InvestigationAgent,"Tool call error, retry 1"
-f5a58f2f,unknown,2025-10-25T11:31:07.205900,,error,InvestigationAgent,"Tool call error, retry 2"
-8bf8f5ce,unknown,2025-10-25T11:31:07.206136,,error,InvestigationAgent,"Tool call error, retry 3"
-0d6704a6,1bb1584e,2025-10-25T11:31:13.042753+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""100000"", ""reason"": """"}"
-5b63acc4,unknown,2025-10-25T11:31:20.824983,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-d7e0f530,unknown,2025-10-25T11:31:25.746423,,success,RightsCheckAgent,Tool call success
-275a0ad9,unknown,2025-10-25T11:31:25.746909,,success,RightsCheckAgent,Tool call success
-f5f83600,1bb1584e,2025-10-25T11:31:29.402765,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-aa23ea39,1bb1584e,2025-10-25T11:31:29.402949,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-44c0ebd6,unknown,2025-10-25T11:31:29.408943,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-2557496b,unknown,2025-10-25T11:31:34.352778,,success,RequestForInformationAgent,Tool call success
-41c80d6c,1bb1584e,2025-10-25T11:31:38.101696,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-e42446e8,1bb1584e,2025-10-25T11:31:38.101930,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-40c295c4,30bd56d1,2025-10-25T11:31:57.846743+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""20000"", ""reason"": """"}"
-91ecd48a,unknown,2025-10-25T11:32:06.273787,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-32bccdd6,unknown,2025-10-25T11:32:11.087586,,success,RightsCheckAgent,Tool call success
-256468ee,unknown,2025-10-25T11:32:11.088041,,success,RightsCheckAgent,Tool call success
-ac8bafa5,30bd56d1,2025-10-25T11:32:14.853386,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-cfa18f6f,30bd56d1,2025-10-25T11:32:14.853570,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-ff42748a,unknown,2025-10-25T11:32:14.854480,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-f6daf77f,unknown,2025-10-25T11:32:20.037090,,success,RequestForInformationAgent,Tool call success
-c2fa1a4f,30bd56d1,2025-10-25T11:32:23.373045,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-3ee7c91e,30bd56d1,2025-10-25T11:32:23.373219,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-a991124d,5b0a53cf,2025-10-25T11:35:36.795691+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""100000"", ""reason"": """"}"
-6427b88c,unknown,2025-10-25T11:35:45.530693,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-4502b009,unknown,2025-10-25T11:35:50.740605,,success,RightsCheckAgent,Tool call success
-640e929d,unknown,2025-10-25T11:35:50.741196,,success,RightsCheckAgent,Tool call success
-bf097638,5b0a53cf,2025-10-25T11:35:54.191975,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-a75bb978,5b0a53cf,2025-10-25T11:35:54.192195,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-8172de47,unknown,2025-10-25T11:35:54.194925,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-18810a63,unknown,2025-10-25T11:35:59.261209,,success,RequestForInformationAgent,Tool call success
-6523aceb,5b0a53cf,2025-10-25T11:36:02.592487,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-3b7a5431,5b0a53cf,2025-10-25T11:36:02.592689,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-47116ead,unknown,2025-10-25T11:36:02.593778,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager approval flow
-8b703186,5b0a53cf,2025-10-25T11:36:08.015542,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager approval)
-1c15fe49,5b0a53cf,2025-10-25T11:36:08.015712,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager approval)
-d0682f83,1b626ab8,2025-10-25T11:40:20.716672+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""5200"", ""reason"": """"}"
-34ab5dad,unknown,2025-10-25T11:40:29.681304,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-e8de1d1e,unknown,2025-10-25T11:40:35.104502,,success,RightsCheckAgent,Tool call success
-6c99761c,unknown,2025-10-25T11:40:35.105038,,success,RightsCheckAgent,Tool call success
-be2ca167,1b626ab8,2025-10-25T11:40:38.373696,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-927954fe,1b626ab8,2025-10-25T11:40:38.373846,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-bed610c1,unknown,2025-10-25T11:40:38.379828,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-bd0ce9b3,unknown,2025-10-25T11:40:45.970066,,success,RequestForInformationAgent,Tool call success
-d1a7e433,1b626ab8,2025-10-25T11:40:49.279463,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-88c5428b,1b626ab8,2025-10-25T11:40:49.279633,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-58e26119,unknown,2025-10-25T11:40:49.280557,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager approval flow
-e8a4f345,unknown,2025-10-25T11:40:54.400480,,success,RequestForInformationAgent,Tool call success
-7f5198af,1b626ab8,2025-10-25T11:40:57.841147,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager approval)
-59fed539,1b626ab8,2025-10-25T11:40:57.841501,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager approval)
-e4796743,07232ea9,2025-10-25T11:42:25.270296+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""5200"", ""reason"": """"}"
-e5f10a91,unknown,2025-10-25T11:42:33.369470,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-30510a1e,unknown,2025-10-25T11:42:38.479486,,success,RightsCheckAgent,Tool call success
-2c9ecd94,unknown,2025-10-25T11:42:38.480025,,success,RightsCheckAgent,Tool call success
-7f8bd617,07232ea9,2025-10-25T11:42:41.762632,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-fa62ffe7,07232ea9,2025-10-25T11:42:41.762814,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-973bb970,unknown,2025-10-25T11:42:41.765477,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-98d6e12e,unknown,2025-10-25T11:42:46.845751,,success,RequestForInformationAgent,Tool call success
-1baa0789,unknown,2025-10-25T11:42:46.846374,,success,RequestForInformationAgent,Tool call success
-04026655,07232ea9,2025-10-25T11:42:50.250533,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-b53c7bdc,07232ea9,2025-10-25T11:42:50.250706,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-707eafb5,unknown,2025-10-25T11:42:50.251636,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager approval flow
-98f03206,07232ea9,2025-10-25T11:42:55.633254,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager approval)
-8ce62ad2,07232ea9,2025-10-25T11:42:55.633459,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager approval)
-6a55fa95,unknown,2025-10-25T11:42:55.641874,,pending,InvestigationAgent,InvestigationAgent delegating to AdvisoryAgent for final report and email
-70463376,unknown,2025-10-25T11:42:55.645505,,error,InvestigationAgent,Error calling AdvisoryAgent for final report and email
-8ef63f34,21cca25b,2025-10-25T11:43:48.500620+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""10"", ""reason"": """"}"
-1eeedc47,unknown,2025-10-25T11:43:56.054311,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
-521be88b,unknown,2025-10-25T11:44:01.041596,,success,RightsCheckAgent,Tool call success
-1421c157,unknown,2025-10-25T11:44:01.042085,,success,RightsCheckAgent,Tool call success
-c48f947c,21cca25b,2025-10-25T11:44:04.310644,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
-74a91b00,21cca25b,2025-10-25T11:44:04.310798,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
-9f9ae302,unknown,2025-10-25T11:44:04.313291,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
-1b579009,unknown,2025-10-25T11:44:09.206741,,success,RequestForInformationAgent,Tool call success
-5faccb95,21cca25b,2025-10-25T11:44:12.710316,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
-8bf25b88,21cca25b,2025-10-25T11:44:12.715870,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
-31e32461,unknown,2025-10-25T11:44:12.717080,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager approval flow
-cc21c7d0,unknown,2025-10-25T11:44:18.977883,,success,RequestForInformationAgent,Tool call success
-4c3eaf79,21cca25b,2025-10-25T11:44:22.343356,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager approval)
-7b3bff7e,21cca25b,2025-10-25T11:44:22.348666,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager approval)
-4e250714,unknown,2025-10-25T11:44:22.373744,,pending,InvestigationAgent,InvestigationAgent delegating to AdvisoryAgent for final report and email
-8c0b49a7,unknown,2025-10-25T11:44:30.791100,,completed,AdvisoryAgent,AdvisoryAgent response to InvestigationAgent (final report and email)
-6e9044d9,unknown,2025-10-25T11:44:30.793767,,completed,InvestigationAgent,InvestigationAgent received response from AdvisoryAgent (final report and email)
+049d969d,a78353f4,2025-10-25T12:32:53.913589+00:00,,Pending,u001 - Alice Johnson,"{""field"": ""Salary"", ""new_value"": ""100000"", ""reason"": """"}"
+d61ab3c5,unknown,2025-10-25T12:33:09.705861,,pending,InvestigationAgent,InvestigationAgent delegating to RightsCheckAgent
+99ee5d26,unknown,2025-10-25T12:33:14.852778,,success,RightsCheckAgent,Tool call success
+d97ebdf3,unknown,2025-10-25T12:33:14.853214,,success,RightsCheckAgent,Tool call success
+b63c1f77,a78353f4,2025-10-25T12:33:18.338046,,completed,RightsCheckAgent,RightsCheckAgent response to InvestigationAgent
+ec6648d7,a78353f4,2025-10-25T12:33:18.338251,,completed,InvestigationAgent,InvestigationAgent received response from RightsCheckAgent
+f8f6280d,unknown,2025-10-25T12:33:18.348802,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for user clarification
+fe01feb1,unknown,2025-10-25T12:33:23.635821,,success,RequestForInformationAgent,Tool call success
+027a198e,a78353f4,2025-10-25T12:33:26.988535,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (user clarification)
+619adcf8,a78353f4,2025-10-25T12:33:26.988737,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (user clarification)
+f8337abf,unknown,2025-10-25T12:33:26.989852,,pending,InvestigationAgent,InvestigationAgent delegating to RequestForInformationAgent for manager approval flow
+5f288d30,a78353f4,2025-10-25T12:33:35.076829,,completed,RequestForInformationAgent,RequestForInformationAgent response to InvestigationAgent (manager approval)
+5a9c19fa,a78353f4,2025-10-25T12:33:35.077032,,completed,InvestigationAgent,InvestigationAgent received response from RequestForInformationAgent (manager approval)
+da8aec16,unknown,2025-10-25T12:33:35.079866,,pending,InvestigationAgent,InvestigationAgent delegating to AdvisoryAgent for final report and email
+c021683b,unknown,2025-10-25T12:33:45.205235,,completed,AdvisoryAgent,AdvisoryAgent response to InvestigationAgent (final report and email)
+41b67cd9,unknown,2025-10-25T12:33:45.205456,,completed,InvestigationAgent,InvestigationAgent received response from AdvisoryAgent (final report and email)
