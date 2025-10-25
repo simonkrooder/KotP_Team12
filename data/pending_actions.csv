@@ -1,2 +1,17 @@
 action_id,type,recipient_id,context,status,created_at,response
 085d2021-ae9d-48b1-bb6f-051f65220953,send_notification,user2,Test context 2,responded,2025-10-23T21:37:43.223617,My response
+346d378f-9eb3-41fa-89e4-e144adeb8a37,information_request,u001,"Dear u001,
+
+A salary change record was created for your account on 2025-10-25 in the HRProd environment. However, both the old and new salary values are identical (1000). Please provide the reason for this change or clarify if this was an error.
+
+Thank you,
+RFI Agent",pending,2025-10-25T00:09:28.181724,
+05e0a7c0-6469-4367-88f8-e370690710eb,information_request,u001,A significant salary change was detected for user u001: from 1000 to 20000. Please provide the reason and supporting documentation for this change to proceed with the investigation.,pending,2025-10-25T00:10:57.834017,
+2dd067db-14cf-4d96-9e2d-de7e830d6af8,information_request,u001,"Dear u001,
+
+A recent change was made to your salary record in the HRProd environment, reducing the value from 2500 to 10. This change appears unusual and requires investigation. Please provide the reason for this update and confirm its validity.
+
+If this was an error, please indicate so, and we will initiate corrective actions.
+
+Thank you,
+RFI Agent",pending,2025-10-25T00:13:03.714164,

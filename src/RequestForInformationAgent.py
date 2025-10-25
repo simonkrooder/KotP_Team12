@@ -32,11 +32,22 @@ if not (API_DEPLOYMENT_NAME and PROJECT_ENDPOINT and AZURE_SUBSCRIPTION_ID and A
     logger.error("Missing required environment variables. Please check your .env file.")
     exit(1)
 
-def notify_send(recipient_id: str, subject: str, body: str, context: dict) -> dict:
+def notify_send(recipient_id: str, subject: str, body: str, context: dict = None) -> dict:
     import uuid
     notification_id = str(uuid.uuid4())
-    logger.info(f"Notification sent to {recipient_id}: {subject} | {body}")
-    return {"status": "sent", "message_id": notification_id, "message": f"Notification sent to {recipient_id}"}
+    logger.info(f"[MOCK] Notification sent to {recipient_id}: {subject} | {body}")
+    # Simulate a response from the recipient
+    mock_response = f"Received request: '{subject}'. Reason provided: 'Change required by management.'"
+    return {
+        "status": "sent",
+        "message_id": notification_id,
+        "message": f"Notification sent to {recipient_id}",
+        "recipient_id": recipient_id,
+        "subject": subject,
+        "body": body,
+        "context": context,
+        "response": mock_response
+    }
 
 def lookup_data(file: str, query: dict) -> dict:
     from src import data_access
@@ -50,11 +61,19 @@ def lookup_data(file: str, query: dict) -> dict:
         return {"results": [], "error": str(e)}
 
 def get_toolset():
-    async def async_notify_send(recipient_id: str, subject: str, body: str, context: dict) -> dict:
+    async def async_notify_send(recipient_id: str, subject: str, body: str, context: dict = None) -> dict:
         return await asyncio.to_thread(notify_send, recipient_id, subject, body, context)
-    async def async_lookup_data(file: str, query: dict) -> dict:
+    async def async_lookup_data(file: str, query: dict = None) -> dict:
+        if query is None:
+            logger.error("async_lookup_data called without required 'query' argument.")
+            return {"results": [], "error": "Missing required argument: 'query'"}
         return await asyncio.to_thread(lookup_data, file, query)
-    return AsyncFunctionTool(functions=[async_notify_send, async_lookup_data])
+    async_tool = AsyncFunctionTool(functions=[async_notify_send, async_lookup_data])
+    tool_map = {
+        "async_notify_send": async_notify_send,
+        "async_lookup_data": async_lookup_data
+    }
+    return async_tool, tool_map
 
 def load_instructions():
     return "You are the Request for Information Agent. Use send_notification and lookup_data to contact users/managers and validate claims."
@@ -72,13 +91,13 @@ class RequestForInformationAgent:
 
     async def initialize(self):
         instructions = load_instructions()
-        toolset = get_toolset()
+        async_tool, _ = get_toolset()
         logger.info("Creating agent...")
         self.agent = self.project_client.agents.create_agent(
             model=API_DEPLOYMENT_NAME,
             name="RequestForInformationAgent",
             instructions=instructions,
-            toolset=toolset,
+            toolset=async_tool,
             temperature=TEMPERATURE,
             headers={"x-ms-enable-preview": "true"},
         )
@@ -87,8 +106,8 @@ class RequestForInformationAgent:
         logger.info(f"Created thread, ID: {self.thread.id}")
         self.initialized = True
 
-    def handle_request(self, context: dict) -> dict:
-        return asyncio.run(self._handle_request_async(context))
+    async def handle_request(self, context: dict) -> dict:
+        return await self._handle_request_async(context)
 
     async def _handle_request_async(self, context: dict) -> dict:
         if not self.initialized:
@@ -106,6 +125,7 @@ class RequestForInformationAgent:
         max_iterations = 60
         iteration = 0
         from src.agent_protocol import create_message, log_agent_message
+        _, tool_map = get_toolset()
         while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
             await asyncio.sleep(2)
             iteration += 1
@@ -122,10 +142,8 @@ class RequestForInformationAgent:
                     result = None
                     while retries < max_retries:
                         try:
-                            if tool_call.function.name == "async_notify_send":
-                                result = await get_toolset().tools[0].coroutine(**args)
-                            elif tool_call.function.name == "async_lookup_data":
-                                result = await get_toolset().tools[1].coroutine(**args)
+                            if tool_call.function.name in tool_map:
+                                result = await tool_map[tool_call.function.name](**args)
                             else:
                                 result = f"Tool {tool_call.function.name} not implemented."
                             msg = create_message(
@@ -140,21 +158,24 @@ class RequestForInformationAgent:
                             break
                         except Exception as e:
                             retries += 1
+                            error_msg = f"Error in tool call {tool_call.function.name} with args {args}: {e} (retry {retries})"
                             msg = create_message(
                                 sender="RequestForInformationAgent",
                                 receiver="ToolCall",
                                 action=tool_call.function.name,
                                 context=args,
                                 status="error",
-                                error={"message": str(e), "retry": retries}
+                                error={"message": str(e), "retry": retries, "args": args}
                             )
-                            log_agent_message(msg, comment=f"Tool call error, retry {retries}")
-                            logger.error(f"Error in tool call {tool_call.function.name}: {e} (retry {retries})")
+                            log_agent_message(msg, comment=error_msg)
+                            logger.error(error_msg)
                             if retries >= max_retries:
-                                result = {"error": str(e), "retries": retries}
+                                result = {"error": str(e), "retries": retries, "args": args}
+                    # Ensure output is a string (JSON-encoded if not already)
+                    output_str = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
                     tool_outputs.append({
                         "tool_call_id": tool_call.id,
-                        "output": result
+                        "output": output_str
                     })
                 if tool_outputs:
                     run = self.project_client.agents.runs.submit_tool_outputs(
