@@ -98,7 +98,20 @@ class AdvisoryAgent:
         self.initialized = True
 
     def handle_request(self, context: dict) -> dict:
-        return asyncio.run(self._handle_request_async(context))
+        try:
+            import asyncio
+            if asyncio.get_event_loop().is_running():
+                # If already in an event loop, schedule and await the coroutine
+                # This is only valid if called from async context
+                # Use asyncio.ensure_future and run until complete
+                # But since caller is async, they should use await
+                # So, return the coroutine itself
+                return self._handle_request_async(context)
+            else:
+                return asyncio.run(self._handle_request_async(context))
+        except RuntimeError:
+            # If no event loop, fallback to asyncio.run
+            return asyncio.run(self._handle_request_async(context))
 
     async def _handle_request_async(self, context: dict) -> dict:
         if not self.initialized:

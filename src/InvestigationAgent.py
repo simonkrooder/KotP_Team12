@@ -348,12 +348,75 @@ class InvestigationAgent:
             )
             log_agent_message(msg, comment="Error calling RequestForInformationAgent (manager approval)")
 
+        # --- Agent2Agent: Final Step: Call AdvisoryAgent for report and mock email ---
+        advisory_result = None
+        try:
+            from src.AdvisoryAgent import AdvisoryAgent
+            advisory_agent = AdvisoryAgent()
+            # Build advisory context: include all previous results and a flag to mock email
+            advisory_context = {
+                "mutation_id": context.get("mutation_id", "unknown"),
+                "investigation": investigation_result,
+                "rights_check": rights_result,
+                "information_user_request": info_user_result,
+                "information_manager_request": info_manager_result,
+                "send_email_to_controller": True
+            }
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="AdvisoryAgent",
+                action="handle_request",
+                context=advisory_context,
+                status="pending"
+            )
+            log_agent_message(msg, comment="InvestigationAgent delegating to AdvisoryAgent for final report and email")
+            advisory_result = await advisory_agent.handle_request(advisory_context)
+            msg2 = create_message(
+                sender="AdvisoryAgent",
+                receiver="InvestigationAgent",
+                action="response",
+                context=advisory_result,
+                status=advisory_result.get("status", "unknown")
+            )
+            log_agent_message(msg2, comment="AdvisoryAgent response to InvestigationAgent (final report and email)")
+            msg3 = create_message(
+                sender="InvestigationAgent",
+                receiver="InvestigationAgent",
+                action="received_advisoryagent_response",
+                context=advisory_result,
+                status=advisory_result.get("status", "unknown")
+            )
+            log_agent_message(msg3, comment="InvestigationAgent received response from AdvisoryAgent (final report and email)")
+            logger.info(f"InvestigationAgent received response from AdvisoryAgent: {advisory_result}")
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            logger.error(f"Failed to call AdvisoryAgent: {e}\n{tb_str}")
+            log_path = os.path.join(os.path.dirname(__file__), 'log.txt')
+            with open(log_path, 'a', encoding='utf-8') as logf:
+                logf.write(f"[AdvisoryAgent ERROR] {datetime.utcnow().isoformat()}\n{tb_str}\n")
+            advisory_result = {
+                "agent": "AdvisoryAgent",
+                "status": "error",
+                "error": f"Failed to call AdvisoryAgent: {e}",
+                "context": advisory_context if 'advisory_context' in locals() else {}
+            }
+            msg = create_message(
+                sender="InvestigationAgent",
+                receiver="AdvisoryAgent",
+                action="handle_request",
+                context=advisory_context if 'advisory_context' in locals() else {},
+                status="error",
+                error={"message": str(e), "traceback": tb_str}
+            )
+            log_agent_message(msg, comment="Error calling AdvisoryAgent for final report and email")
+
         # --- Return combined result ---
         return {
             "investigation": investigation_result,
             "rights_check": rights_result,
             "information_user_request": info_user_result,
-            "information_manager_request": info_manager_result
+            "information_manager_request": info_manager_result,
+            "advisory_report": advisory_result
         }
 
 # --- MAIN BLOCK ---

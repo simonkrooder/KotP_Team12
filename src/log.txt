@@ -1,0 +1,12 @@
+[AdvisoryAgent ERROR] 2025-10-25T11:42:55.644350
+Traceback (most recent call last):
+  File "/workspaces/KotP_Team12/src/InvestigationAgent.py", line 373, in _handle_request_async
+    advisory_result = await advisory_agent.handle_request(advisory_context)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/KotP_Team12/src/AdvisoryAgent.py", line 101, in handle_request
+    return asyncio.run(self._handle_request_async(context))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.python/current/lib/python3.12/asyncio/runners.py", line 190, in run
+    raise RuntimeError(
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
