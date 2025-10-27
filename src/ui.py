@@ -167,20 +167,38 @@ if page == "HR Mutation Entry":
                     agent = InvestigationAgent()
                     # Pass the new mutation as context
                     agent_response = agent.handle_request(new_row)
-                    # If agent_response is a dict with 'investigation' and 'rights_check', extract summary
-                    summary = None
-                    if isinstance(agent_response, dict) and 'investigation' in agent_response:
+                    # Extract thoughts from all agents
+                    summary_lines = []
+                    if isinstance(agent_response, dict):
                         inv = agent_response.get('investigation', {})
                         rc = agent_response.get('rights_check', {})
-                        # Prefer investigation response, fallback to error or rights_check
-                        summary = inv.get('response') or inv.get('error')
-                        if not summary and rc:
-                            summary = rc.get('response') or rc.get('error')
-                        if not summary:
-                            summary = str(agent_response)
+                        info_user = agent_response.get('information_user_request', {})
+                        info_manager = agent_response.get('information_manager_request', {})
+                        advisory = agent_response.get('advisory_report', {})
+                        # InvestigationAgent
+                        inv_text = inv.get('response') or inv.get('error')
+                        if inv_text:
+                            summary_lines.append(f"**Investigation Agent:** {inv_text}")
+                        # RightsCheckAgent
+                        rc_text = rc.get('response') or rc.get('error')
+                        if rc_text:
+                            summary_lines.append(f"**Rights Check Agent:** {rc_text}")
+                        # RequestForInformationAgent (user)
+                        info_user_text = info_user.get('response') or info_user.get('error')
+                        if info_user_text:
+                            summary_lines.append(f"**User Clarification Agent:** {info_user_text}")
+                        # RequestForInformationAgent (manager)
+                        info_manager_text = info_manager.get('response') or info_manager.get('error')
+                        if info_manager_text:
+                            summary_lines.append(f"**Manager Validation Agent:** {info_manager_text}")
+                        # AdvisoryAgent (final advisory)
+                        advisory_text = advisory.get('response') or advisory.get('error')
+                        if advisory_text:
+                            summary_lines.append(f"**Advisory Agent (Final Advisory):** {advisory_text}")
+                        summary = "\n\n".join(summary_lines) if summary_lines else str(agent_response)
                     else:
                         summary = agent_response.get('response', agent_response) if isinstance(agent_response, dict) else str(agent_response)
-                    st.info(f"Investigation Agent triggered. Response: {summary}")
+                    st.info(f"Agent Workflow Summary:\n\n{summary}")
                     # Optionally show full JSON result in expandable section
                     with st.expander("Show full agent response (JSON)"):
                         st.json(agent_response)
