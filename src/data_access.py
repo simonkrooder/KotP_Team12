@@ -131,6 +131,7 @@ CSV_SCHEMAS = {
         {'name': 'NewStatus', 'type': 'string', 'required': True},
         {'name': 'Agent', 'type': 'string', 'required': True},
         {'name': 'Comment', 'type': 'string', 'required': False},
+        {'name': 'Reasoning', 'type': 'string', 'required': False},
     ],
 }
 
@@ -188,6 +189,10 @@ def read_csv(name, **kwargs):
         for col in ['OldValue', 'NewValue']:
             if col in df.columns:
                 df[col] = df[col].astype(str)
+    # For audit_trail, coerce all columns to string before validation
+    if name == 'audit_trail':
+        for col in df.columns:
+            df[col] = df[col].astype(str)
     validate_schema(name, df)
     return df
 

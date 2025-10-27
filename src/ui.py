@@ -50,18 +50,35 @@ def log_ui_audit(action, mutation_id=None, old_status=None, new_status=None, age
             comment_str = comment
     else:
         comment_str = str(action)
-    row = [audit_id, mutation_id or "", timestamp, old_status or "", new_status or "", agent or "UI", comment_str]
+    # Reasoning: extract from action or comment if present
+    reasoning = ""
+    if isinstance(action, dict) and "reasoning" in action:
+        reasoning = action["reasoning"]
+    elif isinstance(comment, dict) and "reasoning" in comment:
+        reasoning = comment["reasoning"]
+    # Serialize reasoning as JSON
+    import json as _json
+    try:
+        reasoning_json = _json.dumps(reasoning, ensure_ascii=False)
+    except Exception:
+        reasoning_json = str(reasoning)
+    row = [audit_id, mutation_id or "", timestamp, old_status or "", new_status or "", agent or "UI", comment_str, reasoning_json]
     # Write all rows back using csv.writer for robust quoting
     with open(AUDIT_FILE, 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-        # Write header
-        writer.writerow(["AuditID", "MutationID", "Timestamp", "OldStatus", "NewStatus", "Agent", "Comment"])
+        # Write header with Reasoning column
+        writer.writerow(["AuditID", "MutationID", "Timestamp", "OldStatus", "NewStatus", "Agent", "Comment", "Reasoning"])
         # Write existing data rows (skip any blank lines)
         for line in data:
             if line.strip():
-                # Parse the line as CSV and write it back to ensure quoting is correct
                 reader = csv.reader([line])
                 for parsed_row in reader:
+                    # If old header, skip it
+                    if parsed_row and parsed_row[0] == "AuditID":
+                        continue
+                    # If old row, pad to 8 columns
+                    while len(parsed_row) < 8:
+                        parsed_row.append("")
                     writer.writerow(parsed_row)
         # Write the new row
         writer.writerow(row)
@@ -225,6 +242,9 @@ elif page == "Audit Trail":
     st.header("Audit Trail")
     try:
         audit_df = read_csv('audit_trail')
+        # Coerce all columns to string type to avoid schema validation errors
+        for col in audit_df.columns:
+            audit_df[col] = audit_df[col].astype(str)
         # Optional filters
         action_types = ["All"] + audit_df['ActionType'].dropna().unique().tolist() if 'ActionType' in audit_df.columns else ["All"]
         filter_action = st.selectbox("Filter by Action Type", action_types)

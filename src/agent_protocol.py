@@ -101,11 +101,29 @@ def log_agent_message(msg: AgentMessage, comment: Optional[str] = None):
             comment_str = comment
     else:
         comment_str = json.dumps(msg.dict(), ensure_ascii=False)
-    row = [audit_id, mutation_id, timestamp, old_status, new_status, agent, comment_str]
+    # Reasoning: try to extract from context or comment
+    reasoning = msg.context.get('reasoning', '')
+    # If not present, try to extract from comment if it's a dict with 'reasoning'
+    if not reasoning and comment is not None:
+        try:
+            if isinstance(comment, dict) and 'reasoning' in comment:
+                reasoning = comment['reasoning']
+            elif isinstance(comment, str):
+                comment_json = json.loads(comment)
+                if isinstance(comment_json, dict) and 'reasoning' in comment_json:
+                    reasoning = comment_json['reasoning']
+        except Exception:
+            pass
+    # Serialize reasoning as JSON string for safe CSV storage
+    try:
+        reasoning_json = json.dumps(reasoning, ensure_ascii=False)
+    except Exception:
+        reasoning_json = str(reasoning)
+    row = [audit_id, mutation_id, timestamp, old_status, new_status, agent, comment_str, reasoning_json]
     # Write header if file does not exist
     write_header = not os.path.exists(AUDIT_FILE)
     with open(AUDIT_FILE, 'a', encoding='utf-8', newline='') as f:
         writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
         if write_header:
-            writer.writerow(["AuditID", "MutationID", "Timestamp", "OldStatus", "NewStatus", "Agent", "Comment"])
+            writer.writerow(["AuditID", "MutationID", "Timestamp", "OldStatus", "NewStatus", "Agent", "Comment", "Reasoning"])
         writer.writerow(row)

@@ -155,32 +155,48 @@ class InvestigationAgent:
                     logger.info("Tool outputs submitted.")
 
         investigation_result = None
+        reasoning_text = None
         if run.status == "completed":
             response = self.project_client.agents.messages.get_last_message_by_role(
                 thread_id=self.thread.id,
                 role=MessageRole.AGENT,
             )
             if response:
+                reasoning_text = "\n".join(t.text.value for t in response.text_messages)
                 investigation_result = {
                     "agent": "InvestigationAgent",
                     "status": "completed",
-                    "response": "\n".join(t.text.value for t in response.text_messages),
-                    "context": context
+                    "response": reasoning_text,
+                    "context": context,
+                    "reasoning": reasoning_text
                 }
             else:
                 investigation_result = {
                     "agent": "InvestigationAgent",
                     "status": "error",
                     "error": "No response message found.",
-                    "context": context
+                    "context": context,
+                    "reasoning": ""
                 }
         elif run.status == "failed":
             investigation_result = {
                 "agent": "InvestigationAgent",
                 "status": "error",
                 "error": str(run.last_error),
-                "context": context
+                "context": context,
+                "reasoning": str(run.last_error)
             }
+        # Log reasoning to audit trail
+        import json as _json
+        reasoning_serialized = _json.dumps(investigation_result.get("reasoning", ""), ensure_ascii=False)
+        msg_reasoning = create_message(
+            sender="InvestigationAgent",
+            receiver="AuditTrail",
+            action="reasoning",
+            context={**context, "reasoning": reasoning_serialized},
+            status=investigation_result.get("status", "unknown")
+        )
+        log_agent_message(msg_reasoning, comment="InvestigationAgent reasoning step")
 
         # --- Agent2Agent: Call RightsCheckAgent ---
         import traceback
@@ -197,11 +213,15 @@ class InvestigationAgent:
             )
             log_agent_message(msg, comment="InvestigationAgent delegating to RightsCheckAgent")
             rights_result = await rights_agent.handle_request(context)
+            # Log reasoning for RightsCheckAgent step
+            import json as _json
+            rights_reasoning = rights_result.get("response") or rights_result.get("error") or rights_result.get("status")
+            rights_reasoning_serialized = _json.dumps(rights_reasoning, ensure_ascii=False)
             msg2 = create_message(
                 sender="RightsCheckAgent",
                 receiver="InvestigationAgent",
                 action="response",
-                context=rights_result,
+                context={**rights_result, "reasoning": rights_reasoning_serialized},
                 status=rights_result.get("status", "unknown")
             )
             log_agent_message(msg2, comment="RightsCheckAgent response to InvestigationAgent")
@@ -209,7 +229,7 @@ class InvestigationAgent:
                 sender="InvestigationAgent",
                 receiver="InvestigationAgent",
                 action="received_rightscheck_response",
-                context=rights_result,
+                context={**rights_result, "reasoning": rights_reasoning_serialized},
                 status=rights_result.get("status", "unknown")
             )
             log_agent_message(msg3, comment="InvestigationAgent received response from RightsCheckAgent")
@@ -250,11 +270,15 @@ class InvestigationAgent:
             )
             log_agent_message(msg, comment="InvestigationAgent delegating to RequestForInformationAgent for user clarification")
             info_user_result = await info_agent.handle_request({**context, "clarification_type": "user"})
+            # Log reasoning for RequestForInformationAgent (user) step
+            import json as _json
+            info_user_reasoning = info_user_result.get("response") or info_user_result.get("error") or info_user_result.get("status")
+            info_user_reasoning_serialized = _json.dumps(info_user_reasoning, ensure_ascii=False)
             msg2 = create_message(
                 sender="RequestForInformationAgent",
                 receiver="InvestigationAgent",
                 action="response_user_clarification",
-                context=info_user_result,
+                context={**info_user_result, "reasoning": info_user_reasoning_serialized},
                 status=info_user_result.get("status", "unknown")
             )
             log_agent_message(msg2, comment="RequestForInformationAgent response to InvestigationAgent (user clarification)")
@@ -262,7 +286,7 @@ class InvestigationAgent:
                 sender="InvestigationAgent",
                 receiver="InvestigationAgent",
                 action="received_informationagent_user_response",
-                context=info_user_result,
+                context={**info_user_result, "reasoning": info_user_reasoning_serialized},
                 status=info_user_result.get("status", "unknown")
             )
             log_agent_message(msg3, comment="InvestigationAgent received response from RequestForInformationAgent (user clarification)")
@@ -309,11 +333,15 @@ class InvestigationAgent:
             )
             log_agent_message(msg, comment="InvestigationAgent delegating to RequestForInformationAgent for manager approval flow")
             info_manager_result = await info_agent.handle_request(manager_context)
+            # Log reasoning for RequestForInformationAgent (manager) step
+            import json as _json
+            info_manager_reasoning = info_manager_result.get("response") or info_manager_result.get("error") or info_manager_result.get("status")
+            info_manager_reasoning_serialized = _json.dumps(info_manager_reasoning, ensure_ascii=False)
             msg2 = create_message(
                 sender="RequestForInformationAgent",
                 receiver="InvestigationAgent",
                 action="response_manager_validation",
-                context=info_manager_result,
+                context={**info_manager_result, "reasoning": info_manager_reasoning_serialized},
                 status=info_manager_result.get("status", "unknown")
             )
             log_agent_message(msg2, comment="RequestForInformationAgent response to InvestigationAgent (manager approval)")
@@ -321,7 +349,7 @@ class InvestigationAgent:
                 sender="InvestigationAgent",
                 receiver="InvestigationAgent",
                 action="received_informationagent_manager_response",
-                context=info_manager_result,
+                context={**info_manager_result, "reasoning": info_manager_reasoning_serialized},
                 status=info_manager_result.get("status", "unknown")
             )
             log_agent_message(msg3, comment="InvestigationAgent received response from RequestForInformationAgent (manager approval)")
@@ -371,11 +399,15 @@ class InvestigationAgent:
             )
             log_agent_message(msg, comment="InvestigationAgent delegating to AdvisoryAgent for final report and email")
             advisory_result = await advisory_agent.handle_request(advisory_context)
+            # Log reasoning for AdvisoryAgent step
+            import json as _json
+            advisory_reasoning = advisory_result.get("response") or advisory_result.get("error") or advisory_result.get("status")
+            advisory_reasoning_serialized = _json.dumps(advisory_reasoning, ensure_ascii=False)
             msg2 = create_message(
                 sender="AdvisoryAgent",
                 receiver="InvestigationAgent",
                 action="response",
-                context=advisory_result,
+                context={**advisory_result, "reasoning": advisory_reasoning_serialized},
                 status=advisory_result.get("status", "unknown")
             )
             log_agent_message(msg2, comment="AdvisoryAgent response to InvestigationAgent (final report and email)")
@@ -383,7 +415,7 @@ class InvestigationAgent:
                 sender="InvestigationAgent",
                 receiver="InvestigationAgent",
                 action="received_advisoryagent_response",
-                context=advisory_result,
+                context={**advisory_result, "reasoning": advisory_reasoning_serialized},
                 status=advisory_result.get("status", "unknown")
             )
             log_agent_message(msg3, comment="InvestigationAgent received response from AdvisoryAgent (final report and email)")
