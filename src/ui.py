@@ -9,6 +9,80 @@ import json
 import time
 from pending_actions import get_pending_actions, update_action_response
 
+# --- Option Menu for Navigation ---
+from streamlit_option_menu import option_menu
+
+# --- Custom UI Styling (Capgemini-inspired dark mode) ---
+st.markdown(
+    """
+    <style>
+    body, .stApp {
+        background: linear-gradient(120deg, #0a0e1a 0%, #1a1f2e 100%) !important;
+        color: #e3e9f7 !important;
+        font-family: 'Segoe UI', 'SF Pro Display', 'Roboto', Arial, sans-serif;
+    }
+    .stSidebar {
+        background-color: #002542 !important;
+        border-right: 3px solid #0052cc !important;
+    }
+    .stSidebar .css-1d391kg, .stSidebar .css-1v3fvcr {
+        color: #ffffff !important;
+    }
+    .stButton > button {
+        background: linear-gradient(90deg, #0052cc 0%, #00b8d9 100%) !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+        box-shadow: 0 0 8px 0 rgba(0,184,217,0.3);
+        border: none !important;
+        font-weight: 600;
+        transition: background 0.3s, box-shadow 0.3s;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(90deg, #00b8d9 0%, #0052cc 100%) !important;
+        box-shadow: 0 0 12px 0 rgba(0,184,217,0.4);
+    }
+    .stTextInput > div > input {
+        background-color: #1a1f2e !important;
+        color: #e3e9f7 !important;
+        border: 2px solid #0052cc !important;
+        border-radius: 8px !important;
+    }
+    /* Remove blue border from selectbox dropdowns */
+    .stSelectbox > div > div {
+        background-color: #1a1f2e !important;
+        color: #e3e9f7 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        box-shadow: none !important;
+    }
+    .stDataFrame, .stTable {
+        background-color: #1a1f2e !important;
+        border-radius: 14px !important;
+        box-shadow: 0 0 8px 0 rgba(0,184,217,0.15);
+        color: #e3e9f7 !important;
+    }
+    .stCaption, .stMarkdown, .stExpanderHeader {
+        color: #a0aec0 !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #00b8d9 !important;
+        font-weight: 700 !important;
+    }
+    .stExpander {
+        background-color: #1a1f2e !important;
+        border-radius: 10px !important;
+        color: #e3e9f7 !important;
+    }
+    .stAlert, .stInfo, .stSuccess, .stWarning, .stError {
+        background: rgba(0,82,204,0.1) !important;
+        border-left: 5px solid #00b8d9 !important;
+        color: #e3e9f7 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # --- Import InvestigationAgent for triggering on mutation ---
 import sys
 from pathlib import Path
@@ -84,294 +158,141 @@ def log_ui_audit(action, mutation_id=None, old_status=None, new_status=None, age
         writer.writerow(row)
 
 st.set_page_config(page_title="Agentic HR Access Control Demo", layout="wide")
+st.markdown("<h1 style='color:#00b8d9;font-weight:700;'>Agentic HR Access Control Demo</h1>", unsafe_allow_html=True)
 
-# Sidebar navigation
-st.sidebar.title("Navigation")
-
-# Page name constants
+# Sidebar navigation with icons
 PAGE_HR_MUTATION_ENTRY = "HR Mutation Entry"
-PAGE_HR_MUTATIONS_TABLE = "HR Mutations Table"
 PAGE_AUDIT_TRAIL = "Audit Trail"
-PAGE_USER_MANAGER_RESPONSE = "Mocked User/Manager Response"
-PAGE_INSIGHTS_DASHBOARD = "Insights/Dashboard"
-PAGE_MANUAL_TRIGGER_CHAT = "Manual Trigger/Chat (Optional)"
+with st.sidebar:
+    selected = option_menu(
+        menu_title=None,
+        options=[PAGE_HR_MUTATION_ENTRY, PAGE_AUDIT_TRAIL],
+        icons=["person-fill", "journal-text"],
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"background-color": "#002542", "padding": "0.5em 0.5em 2em 0.5em", "border-right": "3px solid #0052cc"},
+            "icon": {"color": "#00b8d9", "font-size": "1.3em"},
+            "nav-link": {"font-size": "1.1em", "color": "#fff", "margin":"0.2em 0", "border-radius": "6px"},
+            "nav-link-selected": {"background-color": "#0052cc", "color": "#fff"},
+        },
+    )
 
-st.sidebar.title("Navigation")
-page = st.sidebar.radio(
-    "Go to page:",
-    [
-        PAGE_HR_MUTATION_ENTRY,
-        PAGE_HR_MUTATIONS_TABLE,
-        PAGE_AUDIT_TRAIL,
-        PAGE_USER_MANAGER_RESPONSE,
-        PAGE_INSIGHTS_DASHBOARD,
-        PAGE_MANUAL_TRIGGER_CHAT
-    ]
-)
-
-if page == "HR Mutation Entry":
-    st.header("HR Mutation Entry")
+if selected == PAGE_HR_MUTATION_ENTRY:
+    st.markdown("<h2 style='color:#00b8d9;font-weight:700;'>HR Mutation Entry</h2>", unsafe_allow_html=True)
     st.caption("All fields are required unless marked optional. Please provide accurate information for auditability.")
     users_df = read_csv('users')
     user_options = users_df['UserID'] + " - " + users_df['Name']
     user_map = dict(zip(user_options, users_df['UserID']))
-    changed_by = st.selectbox("Changed By (User)", user_options, help="Select the user making the change.")
-    changed_for = st.selectbox("Changed For (User)", user_options, help="Select the user whose data is being changed.")
-    change_type = st.selectbox("Change Type", ["Create", "Update", "Terminate"], help="Type of change being made.")
-    field_changed = st.text_input("Field Changed (e.g., Salary, JobTitle)", help="Specify the field that is being changed.")
-    old_value = st.text_input("Old Value (optional)", help="Previous value before the change (if applicable).")
-    new_value = st.text_input("New Value", help="New value after the change.")
-    environment = st.selectbox("Environment", users_df['Environment'].unique(), help="System environment (e.g., HRProd, HRTest).")
-    reason = st.text_input("Reason for Change", help="Provide a reason for the change.")
-    manager_id = st.selectbox("Manager", user_options, help="Select the manager responsible for validation.")
-    submit = st.button("Submit Mutation")
+    with st.container():
+        changed_by = st.selectbox("Changed By (User)", user_options, help="Select the user making the change.")
+        changed_for = st.selectbox("Changed For (User)", user_options, help="Select the user whose data is being changed.")
+        change_type = st.selectbox("Change Type", ["Create", "Update", "Terminate"], help="Type of change being made.")
+        field_changed = st.text_input("Field Changed (e.g., Salary, JobTitle)", help="Specify the field that is being changed.")
+        old_value = st.text_input("Old Value (optional)", help="Previous value before the change (if applicable).")
+        new_value = st.text_input("New Value", help="New value after the change.")
+        environment = st.selectbox("Environment", users_df['Environment'].unique(), help="System environment (e.g., HRProd, HRTest).")
+        reason = st.text_input("Reason for Change", help="Provide a reason for the change.")
+        manager_id = st.selectbox("Manager", user_options, help="Select the manager responsible for validation.")
+        submit = st.button("Submit Mutation")
     if submit:
-        try:
-            hr_mut_df = read_csv('hr_mutations')
-            mutation_id = str(uuid.uuid4())[:8]
-            timestamp = datetime.now(timezone.utc).isoformat()
-            def safe_str(val):
-                if val is None or (isinstance(val, float) and pd.isna(val)):
-                    return ""
-                return str(val)
-            new_row = {
-                "MutationID": safe_str(mutation_id),
-                "Timestamp": safe_str(timestamp),
-                "ChangedBy": safe_str(user_map[changed_by]),
-                "ChangedFor": safe_str(user_map[changed_for]),
-                "ChangeType": safe_str(change_type),
-                "FieldChanged": safe_str(field_changed),
-                "OldValue": safe_str(old_value),
-                "NewValue": safe_str(new_value),
-                "Environment": safe_str(environment),
-                "Metadata": "{}",  # Always a string
-                "change_investigation": "Pending",
-                "Reason": safe_str(reason),
-                "ManagerID": safe_str(user_map[manager_id])
-            }
-            hr_mut_df = pd.concat([hr_mut_df, pd.DataFrame([new_row])], ignore_index=True)
-            write_csv('hr_mutations', hr_mut_df)
-            # Log audit for mutation creation
-            log_ui_audit(
-                action="mutation_created",
-                mutation_id=mutation_id,
-                old_status="",
-                new_status="Pending",
-                agent=changed_by,
-                comment={"field": field_changed, "new_value": new_value, "reason": reason}
-            )
+        with st.spinner("Submitting mutation and triggering agent workflow..."):
+            try:
+                hr_mut_df = read_csv('hr_mutations')
+                mutation_id = str(uuid.uuid4())[:8]
+                timestamp = datetime.now(timezone.utc).isoformat()
+                def safe_str(val):
+                    if val is None or (isinstance(val, float) and pd.isna(val)):
+                        return ""
+                    return str(val)
+                new_row = {
+                    "MutationID": safe_str(mutation_id),
+                    "Timestamp": safe_str(timestamp),
+                    "ChangedBy": safe_str(user_map[changed_by]),
+                    "ChangedFor": safe_str(user_map[changed_for]),
+                    "ChangeType": safe_str(change_type),
+                    "FieldChanged": safe_str(field_changed),
+                    "OldValue": safe_str(old_value),
+                    "NewValue": safe_str(new_value),
+                    "Environment": safe_str(environment),
+                    "Metadata": "{}",  # Always a string
+                    "change_investigation": "Pending",
+                    "Reason": safe_str(reason),
+                    "ManagerID": safe_str(user_map[manager_id])
+                }
+                hr_mut_df = pd.concat([hr_mut_df, pd.DataFrame([new_row])], ignore_index=True)
+                write_csv('hr_mutations', hr_mut_df)
+                # Log audit for mutation creation
+                log_ui_audit(
+                    action="mutation_created",
+                    mutation_id=mutation_id,
+                    old_status="",
+                    new_status="Pending",
+                    agent=changed_by,
+                    comment={"field": field_changed, "new_value": new_value, "reason": reason}
+                )
 
-            # --- Trigger InvestigationAgent (with Agent2Agent chaining) ---
-            if InvestigationAgent is not None:
-                try:
-                    agent = InvestigationAgent()
-                    # Pass the new mutation as context
-                    agent_response = agent.handle_request(new_row)
-                    # Extract thoughts from all agents
-                    summary_lines = []
-                    if isinstance(agent_response, dict):
-                        inv = agent_response.get('investigation', {})
-                        rc = agent_response.get('rights_check', {})
-                        info_user = agent_response.get('information_user_request', {})
-                        info_manager = agent_response.get('information_manager_request', {})
-                        advisory = agent_response.get('advisory_report', {})
-                        # InvestigationAgent
-                        inv_text = inv.get('response') or inv.get('error')
-                        if inv_text:
-                            summary_lines.append(f"**Investigation Agent:** {inv_text}")
-                        # RightsCheckAgent
-                        rc_text = rc.get('response') or rc.get('error')
-                        if rc_text:
-                            summary_lines.append(f"**Rights Check Agent:** {rc_text}")
-                        # RequestForInformationAgent (user)
-                        info_user_text = info_user.get('response') or info_user.get('error')
-                        if info_user_text:
-                            summary_lines.append(f"**User Clarification Agent:** {info_user_text}")
-                        # RequestForInformationAgent (manager)
-                        info_manager_text = info_manager.get('response') or info_manager.get('error')
-                        if info_manager_text:
-                            summary_lines.append(f"**Manager Validation Agent:** {info_manager_text}")
-                        # AdvisoryAgent (final advisory)
-                        advisory_text = advisory.get('response') or advisory.get('error')
-                        if advisory_text:
-                            summary_lines.append(f"**Advisory Agent (Final Advisory):** {advisory_text}")
-                        summary = "\n\n".join(summary_lines) if summary_lines else str(agent_response)
-                    else:
-                        summary = agent_response.get('response', agent_response) if isinstance(agent_response, dict) else str(agent_response)
-                    st.info(f"Agent Workflow Summary:\n\n{summary}")
-                    # Optionally show full JSON result in expandable section
-                    with st.expander("Show full agent response (JSON)"):
-                        st.json(agent_response)
-                except Exception as agent_exc:
-                    st.warning(f"Investigation Agent trigger failed: {agent_exc}")
-            else:
-                st.warning("InvestigationAgent could not be imported; agent not triggered.")
-
-            st.success(f"Mutation {mutation_id} submitted successfully!")
-        except Exception as e:
-            st.error(f"Error submitting mutation: {e}")
-
-elif page == "HR Mutations Table":
-    st.header("HR Mutations Table")
-    try:
-        hr_mut_df = read_csv('hr_mutations')
-        users_df = read_csv('users')
-        # Optional filters
-        user_options = users_df['UserID'] + " - " + users_df['Name']
-        filter_user = st.selectbox("Filter by Changed For (User)", ["All"] + list(user_options))
-        filter_type = st.selectbox("Filter by Change Type", ["All"] + hr_mut_df['ChangeType'].dropna().unique().tolist())
-        filter_status = st.selectbox("Filter by Investigation Status", ["All"] + hr_mut_df['change_investigation'].dropna().unique().tolist())
-        df = hr_mut_df.copy()
-        if filter_user != "All":
-            user_id = filter_user.split(" - ")[0]
-            df = df[df['ChangedFor'] == user_id]
-        if filter_type != "All":
-            df = df[df['ChangeType'] == filter_type]
-        if filter_status != "All":
-            df = df[df['change_investigation'] == filter_status]
-        st.dataframe(df, use_container_width=True)
-
-        # --- Mutation-centric audit trail view ---
-        st.subheader("View Audit Trail for a Mutation")
-        mutation_ids = df['MutationID'].tolist()
-        if mutation_ids:
-            selected_mutation = st.selectbox("Select MutationID to view audit trail", mutation_ids)
-            if st.button("Show Audit Trail for Selected Mutation"):
-                audit_df = get_audit_trail_for_mutation(selected_mutation)
-                if not audit_df.empty:
-                    st.write(f"Audit Trail for MutationID: {selected_mutation}")
-                    st.dataframe(audit_df, use_container_width=True)
-                    # Optional: Export as CSV
-                    csv = audit_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Download Audit Trail as CSV",
-                        data=csv,
-                        file_name=f'audit_trail_{selected_mutation}.csv',
-                        mime='text/csv',
-                    )
+                # --- Trigger InvestigationAgent (with Agent2Agent chaining) ---
+                if InvestigationAgent is not None:
+                    try:
+                        agent = InvestigationAgent()
+                        # Pass the new mutation as context
+                        agent_response = agent.handle_request(new_row)
+                        # Extract thoughts from all agents
+                        summary_lines = []
+                        if isinstance(agent_response, dict):
+                            inv = agent_response.get('investigation', {})
+                            rc = agent_response.get('rights_check', {})
+                            info_user = agent_response.get('information_user_request', {})
+                            info_manager = agent_response.get('information_manager_request', {})
+                            advisory = agent_response.get('advisory_report', {})
+                            # InvestigationAgent
+                            inv_text = inv.get('response') or inv.get('error')
+                            if inv_text:
+                                summary_lines.append(f"<span style='color:#00b8d9;font-weight:600;'>Investigation Agent:</span> {inv_text}")
+                            # RightsCheckAgent
+                            rc_text = rc.get('response') or rc.get('error')
+                            if rc_text:
+                                summary_lines.append(f"<span style='color:#00b8d9;font-weight:600;'>Rights Check Agent:</span> {rc_text}")
+                            # RequestForInformationAgent (user)
+                            info_user_text = info_user.get('response') or info_user.get('error')
+                            if info_user_text:
+                                summary_lines.append(f"<span style='color:#00b8d9;font-weight:600;'>User Clarification Agent:</span> {info_user_text}")
+                            # RequestForInformationAgent (manager)
+                            info_manager_text = info_manager.get('response') or info_manager.get('error')
+                            if info_manager_text:
+                                summary_lines.append(f"<span style='color:#00b8d9;font-weight:600;'>Manager Validation Agent:</span> {info_manager_text}")
+                            # AdvisoryAgent (final advisory)
+                            advisory_text = advisory.get('response') or advisory.get('error')
+                            if advisory_text:
+                                summary_lines.append(f"<span style='color:#00b8d9;font-weight:600;'>Advisory Agent (Final Advisory):</span> {advisory_text}")
+                            summary = "<br><br>".join(summary_lines) if summary_lines else str(agent_response)
+                        else:
+                            summary = agent_response.get('response', agent_response) if isinstance(agent_response, dict) else str(agent_response)
+                        st.markdown(f"<div style='background:rgba(0,82,204,0.1);border-left:5px solid #00b8d9;padding:12px;border-radius:8px;color:#e3e9f7;'>Agent Workflow Summary:<br><br>{summary}</div>", unsafe_allow_html=True)
+                        # Optionally show full JSON result in expandable section
+                        with st.expander("Show full agent response (JSON)"):
+                            st.json(agent_response)
+                    except Exception as agent_exc:
+                        st.warning(f"Investigation Agent trigger failed: {agent_exc}")
                 else:
-                    st.info("No audit trail entries found for this mutation.")
-        else:
-            st.info("No mutations to display.")
-    except Exception as e:
-        st.error(f"Error loading HR mutations: {e}")
+                    st.warning("InvestigationAgent could not be imported; agent not triggered.")
 
-elif page == "Audit Trail":
-    st.header("Audit Trail")
+                st.success(f"Mutation {mutation_id} submitted successfully!")
+            except Exception as e:
+                st.error(f"Error submitting mutation: {e}")
+
+
+elif selected == PAGE_AUDIT_TRAIL:
+    st.markdown("<h2 style='color:#00b8d9;font-weight:700;'>Audit Trail</h2>", unsafe_allow_html=True)
     try:
         audit_df = read_csv('audit_trail')
         # Coerce all columns to string type to avoid schema validation errors
         for col in audit_df.columns:
             audit_df[col] = audit_df[col].astype(str)
-        # Optional filters
-        action_types = ["All"] + audit_df['ActionType'].dropna().unique().tolist() if 'ActionType' in audit_df.columns else ["All"]
-        filter_action = st.selectbox("Filter by Action Type", action_types)
-        user_ids = ["All"] + audit_df['UserID'].dropna().unique().tolist() if 'UserID' in audit_df.columns else ["All"]
-        filter_user = st.selectbox("Filter by User", user_ids)
-        df = audit_df.copy()
-        if filter_action != "All" and 'ActionType' in df.columns:
-            df = df[df['ActionType'] == filter_action]
-        if filter_user != "All" and 'UserID' in df.columns:
-            df = df[df['UserID'] == filter_user]
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(audit_df, use_container_width=True)
     except Exception as e:
         st.error(f"Error loading audit trail: {e}")
 
-elif page == "Mocked User/Manager Response":
-    st.header("Mocked User/Manager Response")
-    st.caption("Review and respond to pending agent actions in real time. This page polls for new actions every 2 seconds.")
-    # Polling for new pending actions (simulate real-time)
-    if 'last_poll' not in st.session_state:
-        st.session_state['last_poll'] = time.time()
-    if time.time() - st.session_state['last_poll'] > 2:
-        st.session_state['last_poll'] = time.time()
-        st.experimental_rerun()
 
-    # For demo: assume current user is 'manager1' (replace with real user/session logic as needed)
-    current_user_id = st.session_state.get('user_id', 'manager1')
-    actions = get_pending_actions(recipient_id=current_user_id, status='pending')
-    if not actions:
-        st.info("No pending agent actions for you at this time.")
-    else:
-        now = datetime.utcnow()
-        for action in actions:
-            created_at = action.get('created_at')
-            overdue = False
-            if created_at:
-                try:
-                    created_dt = datetime.fromisoformat(created_at)
-                    overdue = (now - created_dt).total_seconds() > 600  # 10 minutes
-                except Exception:
-                    pass
-            st.subheader(f"Action: {action['type']} (ID: {action['action_id']})")
-            st.write(f"**Context:** {action['context']}")
-            if overdue:
-                st.warning("This action has not been responded to for over 10 minutes. Please respond or escalate.")
-            with st.form(f"respond_{action['action_id']}"):
-                response = st.text_area("Your Response", value=action.get('response', ''))
-                submitted = st.form_submit_button("Submit Response")
-                if submitted:
-                    update_action_response(action['action_id'], response)
-                    # Log to audit trail
-                    log_ui_audit(
-                        action=f"pending_action_response_{action['type']}",
-                        mutation_id=action.get('context', ''),
-                        old_status="pending",
-                        new_status="responded",
-                        agent=current_user_id,
-                        comment={"action_id": action['action_id'], "response": response}
-                    )
-                    st.success("Response submitted!")
-                    st.experimental_rerun()
 
-elif page == "Insights/Dashboard":
-    st.header("Insights / Dashboard")
-    st.caption("All status codes are standardized for audit and compliance. For accessibility, use keyboard navigation and screen reader support in Streamlit.")
-    try:
-        hr_mut_df = read_csv('hr_mutations')
-        total_mutations = len(hr_mut_df)
-        pending = (hr_mut_df['change_investigation'] == 'Pending').sum()
-        approved = (hr_mut_df['change_investigation'] == 'Approved').sum()
-        rejected = (hr_mut_df['change_investigation'] == 'Rejected').sum()
-        st.metric("Total Mutations", total_mutations)
-        st.metric("Pending Investigations", pending)
-        st.metric("Approved", approved)
-        st.metric("Rejected", rejected)
-        st.subheader("Mutations by Type")
-        st.bar_chart(hr_mut_df['ChangeType'].value_counts())
-        st.subheader("Mutations by Status")
-        st.bar_chart(hr_mut_df['change_investigation'].value_counts())
-        st.subheader("Recent Mutations")
-        st.dataframe(hr_mut_df.sort_values('Timestamp', ascending=False).head(10), use_container_width=True)
-    except Exception as e:
-        st.error(f"Error loading dashboard: {e}")
-# Accessibility Note
-#
-# For future enhancements, consider adding ARIA labels, keyboard navigation tips, and color contrast checks for full accessibility compliance.
-
-elif page == "Manual Trigger/Chat (Optional)":
-    st.header("Manual Trigger / Chat (Demo)")
-    try:
-        msg = st.text_area("Enter a message or trigger for the agent system:")
-        if st.button("Send Message"):
-            # For demo: append to a chat_log.csv in data folder
-            from pathlib import Path
-            import csv
-            chat_log_path = Path(__file__).parent.parent / 'data' / 'chat_log.csv'
-            chat_log_exists = chat_log_path.exists()
-            with open(chat_log_path, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                if not chat_log_exists:
-                    writer.writerow(["Timestamp", "Message"])
-                writer.writerow([datetime.now().isoformat(), msg])
-            st.success("Message sent and logged.")
-        # Show last 10 messages
-        from pathlib import Path
-        import pandas as pd
-        chat_log_path = Path(__file__).parent.parent / 'data' / 'chat_log.csv'
-        if chat_log_path.exists():
-            chat_df = pd.read_csv(chat_log_path)
-            st.subheader("Recent Messages")
-            st.dataframe(chat_df.tail(10), use_container_width=True)
-    except Exception as e:
-        st.error(f"Error in manual trigger/chat: {e}")
