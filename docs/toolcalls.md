@@ -264,3 +264,28 @@ Real-time UI/agent interaction is achieved by treating toolcalls as triggers for
 **References:**
 - See `architecture.md` for system diagrams and workflow.
 - See `application.md` for user stories and acceptance criteria.
+
+---
+# DETAILED TODO/ACTION MAPPING (from application.md)
+
+This list maps each major TODO/action point from `application.md` to its current implementation status and file locations. Use this as a living checklist for project status and onboarding.
+
+
+## To Check: Architecture & Protocol Compliance (from architecture.md)
+
+- [ ] Ensure all agent-to-agent communication uses the formal Agent2Agent protocol and message schema (`src/agent_protocol.py`).
+- [ ] Guarantee all tool calls are routed through the MCP server and are fully logged for auditability (`src/mcv_server.py`).
+- [ ] Maintain and update canonical workflow diagrams in `docs/visualFlowchart.mmd` as the workflow changes.
+- [ ] Keep UI wireframes in `docs/wireframe.md` up to date with the actual UI implementation.
+- [ ] Ensure all error/retry/escalation flows are implemented as described in `architecture.md` and are logged.
+- [ ] Maintain audit logging policy and log rotation/archiving for `audit_trail.csv`.
+
+## Multi-Agent System
+- [ ] **Agent2Agent Protocol**
+	- Agents are orchestrated in sequence in `src/agent_main.py` (function calls/context passing).
+	- No explicit protocol abstraction; could be formalized if needed.
+
+## Outstanding/Nice-to-Have
+
+	- Current: Sequential orchestration in `agent_main.py`.
+	- Next step: Implement a message-passing or protocol abstraction if needed for extensibility.
